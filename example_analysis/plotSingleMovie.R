@@ -1,6 +1,5 @@
-setwd("/data1/FMP_Docs/Repositories/scripts_FMP/pHluorinShiny/")
+setwd("/data1/FMP_Docs/Repositories/plugins_FMP/pHluorinShiny/")
 library(gridExtra)
-library(pracma)
 source("dataProcessing.R")
 source("saveData.R")
 source("plotData.R")
@@ -8,7 +7,7 @@ source("fitting.R")
 
 # ============================================================================
 #
-#  DESCRIPTION: Data analysis for Fíji pHlorin workflow
+#  DESCRIPTION: Data analysis for a single experiment
 #              
 #       AUTHOR: Christopher Schmied, 
 #      CONTACT: schmied@dzne.de
@@ -34,10 +33,12 @@ source("fitting.R")
 #
 # ============================================================================
 # where to get the files
+# indir = "/data1/FMP_Docs/Projects/Publication_SynapseJ/pHluorinJ_Data/AutomaticAnalysisOut/"
 indir = "/data1/FMP_Docs/Projects/Publication_SynapseJ/pHluorinJ_Data/TestSet/Output_160525/"
 
 # where to save the data
-outdir = "/data1/FMP_Docs/Projects/Publication_SynapseJ/pHluorinJ_Data/TestSet/Output_160525_R/"
+outdir = indir
+# outdir = "/home/schmiedc/Desktop/Output_160525/"
 
 # ============================================================================
 resultname = "Test"
@@ -66,28 +67,54 @@ avg.background <- calcMean(table.background)
 finalTable <- processData(indir, frameStimulation, avg.signal, avg.background)
 
 tau <- calcTau(finalTable)
-
-# save files
-# writeToCsv(outdir, resultname, table.signal, table.background, finalTable, tau)
-# writeToXlsx(outdir, resultname, table.signal, table.background, finalTable, tau)
 # ==============================================================================
 # create plots for a single data point
 
 # DMSO_10 or DMSO_2
 dataName = "DMSO_2"
 
+# compute area for single experiment
+singleData_area <- subset(table.signal, variable == "area")
+singleData_area <- subset(singleData_area, name == dataName)
+singleData_area <- subset(singleData_area, time == 0)
+
+ggplot(data=singleData_area , aes(x=name, y=value)) +
+  geom_boxplot(outlier.colour="black", outlier.shape=16, outlier.size=2, notch=FALSE) +
+  expand_limits(y = 0) +
+  scale_y_continuous(limits = c(0, 15), breaks = seq(0, 15, by = 1)) +
+  ylab("Area (Micron)") + 
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"))
+
+# compute roi count for single experiment
+data <- data.frame(
+  name=c("DMSO_2") ,  
+  value=c(nrow(singleData_area))
+)
+
+ggplot(data=data, aes(x=name, y=value)) +
+  geom_bar(stat="identity") +
+  ylab("Count") + 
+  scale_y_continuous(limits = c(0, 100), breaks = seq(0, 100, by = 10)) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"))
+
 # raw traces
 # plotRawMean_single(table.signal, dataName)
 singleData_rawSignal <- subset(table.signal, variable == "mean")
 singleData_rawSignal <- subset(singleData_rawSignal, name == dataName)
 
-ggplot(data=singleData_rawSignal, aes(x=time, y=value, group=roi)) +
+ggplot(data=singleData_rawSignal, aes(x=time, y=value, group=roi, color = roi)) +
   geom_line() + 
   guides(colour=FALSE)  + 
   theme_light() +
   expand_limits(x = 0, y = 0) +
   scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
-  scale_y_continuous(limits = c(0, 600), breaks = seq(0, 600, by = 100)) +
+  scale_y_continuous(limits = c(0, 700), breaks = seq(0, 700, by = 100)) +
   xlab("Time (s)") + 
   ylab("Fluorescence intensity (A.U.)") + 
   ggtitle(paste0("Raw data ", dataName)) +
@@ -100,13 +127,13 @@ ggplot(data=singleData_rawSignal, aes(x=time, y=value, group=roi)) +
 singleData_rawBack <- subset(table.background, variable == "mean")
 singleData_rawBack <- subset(singleData_rawBack, name == dataName)
 
-ggplot(data=singleData_rawBack, aes(x=time, y=value, group=roi)) +
+ggplot(data=singleData_rawBack, aes(x=time, y=value, group=roi, color = roi)) +
   geom_line() + 
   guides(colour=FALSE)  + 
   theme_light() +
   expand_limits(x = 0, y = 0) +
   scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
-  scale_y_continuous(limits = c(0, 600), breaks = seq(0, 600, by = 100)) +
+  scale_y_continuous(limits = c(0, 700), breaks = seq(0, 700, by = 100)) +
   xlab("Time (s)") + 
   ylab("Fluorescence intensity (A.U.)") + 
   ggtitle(paste0("Raw data ", dataName)) +
@@ -118,8 +145,8 @@ ggplot(data=singleData_rawBack, aes(x=time, y=value, group=roi)) +
 # average traces signal
 singleData_avgSignal <- subset(avg.signal, name == dataName)
 
-singleData_avgSignal$high <- with(singleData_avgSignal, singleData_avgSignal$mean + singleData_avgSignal$sd)
-singleData_avgSignal$low <-  with(singleData_avgSignal, singleData_avgSignal$mean - singleData_avgSignal$sd)
+singleData_avgSignal$high <- with(singleData_avgSignal, singleData_avgSignal$mean + singleData_avgSignal$se)
+singleData_avgSignal$low <-  with(singleData_avgSignal, singleData_avgSignal$mean - singleData_avgSignal$se)
 
 ggplot(data=singleData_avgSignal, aes(x=time, y=mean)) +
   geom_ribbon(aes(ymin = low, ymax = high, colour=name, group=name, fill = name ), alpha=.3) +
@@ -128,7 +155,7 @@ ggplot(data=singleData_avgSignal, aes(x=time, y=mean)) +
   theme_light() +
   expand_limits(x = 0, y = 0) +
   scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
-  scale_y_continuous(limits = c(0, 600), breaks = seq(0, 600, by = 100)) +
+  scale_y_continuous(limits = c(0, 700), breaks = seq(0, 700, by = 100)) +
   xlab("Time (s)") + 
   ylab("Avg. fluorescence intensity (A.U.)") + 
   ggtitle(paste0("Average signal ", dataName)) +
@@ -139,8 +166,8 @@ ggplot(data=singleData_avgSignal, aes(x=time, y=mean)) +
 
 # average traces signal background
 singleData_avgBackground <- subset(avg.background, name == dataName)
-singleData_avgBackground$high <- with(singleData_avgBackground, singleData_avgBackground$mean + singleData_avgBackground$sd)
-singleData_avgBackground$low <-  with(singleData_avgBackground, singleData_avgBackground$mean - singleData_avgBackground$sd)
+singleData_avgBackground$high <- with(singleData_avgBackground, singleData_avgBackground$mean + singleData_avgBackground$se)
+singleData_avgBackground$low <-  with(singleData_avgBackground, singleData_avgBackground$mean - singleData_avgBackground$se)
 
 ggplot(data=singleData_avgBackground, aes(x=time, y=mean)) +
   geom_ribbon(aes(ymin = low, ymax = high, colour=name, group=name, fill = name ), alpha=.3) +
@@ -149,7 +176,7 @@ ggplot(data=singleData_avgBackground, aes(x=time, y=mean)) +
   theme_light() +
   expand_limits(x = 0, y = 0) +
   scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
-  scale_y_continuous(limits = c(0, 600), breaks = seq(0, 600, by = 100)) +
+  scale_y_continuous(limits = c(0, 700), breaks = seq(0, 700, by = 100)) +
   xlab("Time (s)") + 
   ylab("Avg. fluorescence intensity (A.U.)") + 
   ggtitle(paste0("Avg background ", dataName)) +
@@ -160,14 +187,17 @@ ggplot(data=singleData_avgBackground, aes(x=time, y=mean)) +
 
 # processed data
 singleData_finalTable <- subset(finalTable, name == dataName)
+singleData_finalTable$high_corr <- with(singleData_finalTable, singleData_finalTable$mean.corr + singleData_finalTable$sd.sig)
+singleData_finalTable$low_corr <-  with(singleData_finalTable, singleData_finalTable$mean.corr - singleData_finalTable$sd.sig)
 
 ggplot(data=singleData_finalTable, aes(x=time, y=mean.corr)) +
+  geom_ribbon(aes(ymin = low_corr, ymax = high_corr, colour=name, group=name, fill = name ), alpha=.3) +
   geom_line() + 
   guides(colour=FALSE)  + 
   theme_light() +
   expand_limits(x = 0, y = 0) +
-  # scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
-  # scale_y_continuous(limits = c(0, 600), breaks = seq(0, 600, by = 100)) +
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
+  scale_y_continuous(limits = c(0, 700), breaks = seq(0, 700, by = 100)) +
   xlab("Time (s)") + 
   ylab("Norm. fluorescence intensity (A.U.)") + 
   ggtitle(paste0("Background sub ", dataName)) +
@@ -181,7 +211,7 @@ ggplot(data=singleData_finalTable, aes(x=time, y=surf_norm)) +
   guides(colour=FALSE)  + 
   theme_light() +
   expand_limits(x = 0, y = 0.9) +
-  # scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
   scale_y_continuous(limits = c(0.9, 1.7), breaks = seq(0.9, 1.7, by = 0.1)) +
   xlab("Time (s)") + 
   ylab("Norm. fluorescence intensity (A.U.)") + 
@@ -196,7 +226,7 @@ ggplot(data=singleData_finalTable, aes(x=time, y=peak_norm)) +
   guides(colour=FALSE)  + 
   theme_light() +
   expand_limits(x = 0, y = 0) +
-  # scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
   # scale_y_continuous(limits = c(0, 600), breaks = seq(0, 600, by = 100)) +
   xlab("Time (s)") + 
   ylab("Norm. fluorescence intensity (A.U.)") + 
@@ -206,58 +236,8 @@ ggplot(data=singleData_finalTable, aes(x=time, y=peak_norm)) +
         panel.background = element_blank(), 
         axis.line = element_line(colour = "black"))
 
-# get taus
-tau
-# ==============================================================================
-# plots for one dataset treatment vs ctrl
-head(finalTable)
-
-# create average for final table per treatment
-finalTable_1 <- finalTable %>% separate(name, sep ="_", c("treatment", "number", "correction"))
-
-#
-finalTable_2 <- finalTable_1 %>% group_by(treatment, time) %>% summarise(value = mean(surf_norm))
-
 # compute peaks
-peaks <- finalTable_2 %>% summarise(max = max(value))
-
-# plots
-ggplot(data=finalTable_2, aes(x=time, y=value, group = treatment, color = treatment)) +
-  geom_line() + 
-  theme_light() +
-  expand_limits(x = 0, y = 0.9) +
-  # scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
-  scale_y_continuous(limits = c(0.9, 1.7), breaks = seq(0.9, 1.7, by = 0.1)) +
-  xlab("Time (s)") + 
-  ylab("Norm. fluorescence intensity (A.U.)") + 
-  ggtitle(paste0("Surf Norm ", dataName)) +
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(), 
-        axis.line = element_line(colour = "black"))
-
-finalTable_3 <- finalTable_1 %>% group_by(treatment, time) %>% summarise(value = mean(peak_norm))
-head(finalTable_3)
-
-ggplot(finalTable_3, aes(x=time, y=value, group = treatment, color = treatment)) +
-  geom_line() + 
-  theme_light() +
-  # expand_limits(x = 0, y = 0.9) +
-  # scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
-  # scale_y_continuous(limits = c(0.9, 1.7), breaks = seq(0.9, 1.7, by = 0.1)) +
-  xlab("Time (s)") + 
-  ylab("Norm. fluorescence intensity (A.U.)") + 
-  ggtitle(paste0("Surf Norm ", dataName)) +
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(), 
-        axis.line = element_line(colour = "black"))
-
-# number of ROIs
-head(table.signal)
-table.signal_roi <- table.signal %>% group_by(name, roi) %>% distinct(roi) 
-
-table.signal_roi <- table.signal_roi %>% separate(name, sep ="_", c("treatment", "number", "correction"))
-
-table.signal_roi %>% group_by(treatment) %>% count()
-# table.signal_roi %>% group_by(name) %>% summarise(sum = sum(n))
+head(singleData_finalTable)
+peaks <- singleData_finalTable %>% summarise(max = max(surf_norm))
+peaks
+tau

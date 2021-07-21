@@ -68,6 +68,23 @@ plotRawMean_single <- function(dataTable, dataName){
   
 }
 
+plotRawMean_single <- function(dataTable, dataName){
+  
+  mean <- subset(dataTable, variable == "mean" )
+  singleData <- subset(mean, name == dataName)
+  
+  single_plot <- ggplot(data=singleData, aes(x=time, y=value, color = roi, group=roi)) +
+    geom_line() + 
+    guides(colour=FALSE)  + 
+    theme_light() +
+    xlab("time (s)") + 
+    ylab("Fluorescence intensity (a.u.)") + 
+    ggtitle(paste0("Raw data ", dataName)) 
+  
+  return(single_plot)
+  
+}
+
 plotRawArea <- function(dataTable, label) {
   
   # create box plot the show the size distribution of the segmented objects
@@ -96,7 +113,7 @@ plotMean <- function(dataTable, column, title, sd){
     plot <- ggplot(data=dataTable, aes(x=time, y=mean, colour=name, group=name, fill = name)) +
       geom_ribbon(aes(ymin = low, ymax = high, colour=name, group=name, fill = name ), alpha=.3) +
       geom_line(colour = "black") + 
-      guides(colour=FALSE)  + 
+      guides(fill = FALSE, color = FALSE, linetype = FALSE, shape = FALSE) + 
       theme_light() +
       xlab("time (s)") + 
       ylab("Avg. Fluorescence intensity (a.u.)") + 
@@ -109,7 +126,7 @@ plotMean <- function(dataTable, column, title, sd){
     plot <- ggplot(data=dataTable, aes(x=time, y=get(varname[1]), colour=name, group=name, fill = name)) +
       geom_ribbon(aes(ymin = get(varname[1]), ymax = get(varname[1]), colour=name, group=name, fill = name ), alpha=.3) +
       geom_line() +
-      guides(colour=FALSE)  + 
+      guides(fill = FALSE, color = FALSE, linetype = FALSE, shape = FALSE) + 
       theme_light() +
       xlab("time (s)") + 
       ylab("Avg. Fluorescence intensity (a.u.)") + 
@@ -127,8 +144,8 @@ plotMeans <- function(avg.signal, avg.background, finalTable) {
   plot.list[["Peak Norm"]] <- plotMean(finalTable, "peak_norm", "peak normalized", FALSE)
   plot.list[["Surface Norm"]] <- plotMean(finalTable, "surf_norm", "surface normalized", FALSE)
   plot.list[["Corrected"]] <- plotMean(finalTable, "mean.corr", "background subtracted", FALSE)
-  plot.list[["Signal"]] <- plotMean(avg.signal, mean, "Signal", TRUE)
-  plot.list[["Background"]] <- plotMean(avg.background, mean, "Background", TRUE)
+  plot.list[["Signal"]] <- plotMean(avg.signal, mean, "Signal", FALSE)
+  plot.list[["Background"]] <- plotMean(avg.background, mean, "Background", FALSE)
   
   return(plot.list)
   

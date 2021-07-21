@@ -82,7 +82,7 @@ collectList <- function(inputdir, label, timeRes){
 calcMean <- function(inputTable) {
   
   mean.inputTable <- subset(inputTable, variable == "mean" )
-  average.outputTable <- ddply(mean.inputTable, as.quoted(c("name", "frame", "time")), summarise, mean=mean(value), sd = sd(value))
+  average.outputTable <- ddply(mean.inputTable, as.quoted(c("name", "frame", "time")), summarise, mean=mean(value), N = length(value), sd = sd(value), se = sd / sqrt(N))
   return (average.outputTable )
   
 }

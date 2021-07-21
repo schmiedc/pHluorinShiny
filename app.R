@@ -1,4 +1,4 @@
-setwd("/data1/FMP_Docs/Repositories/scripts_FMP/pHluorinShiny/")
+setwd("/data1/FMP_Docs/Repositories/plugins_FMP/pHluorinShiny/")
 
 packages <- c("gridExtra", "shiny", "shinyFiles", "reshape2", "plyr", "tidyverse", "broom", "xlsx", "ggplot2")
 if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
@@ -99,8 +99,7 @@ ui <- fluidPage(
       
       tabsetPanel(type = "tabs",
       
-        tabPanel("Overview", plotOutput("summary1", height=1200)),
-        tabPanel("Summary", plotOutput("summary2", height=1200)),
+        tabPanel("Overview", plotOutput("summary2", height=1200)),
         tabPanel("Detail", selectInput(inputId = "dataName", label = "Input Name:", 
                                        choices = "", selected = ""),
                  actionButton("plotDetail", "plot Detail"),
@@ -220,17 +219,7 @@ server <- function(input, output, session) {
 
       finalTable <- processData(indir, input$frameStim, avg.signal, avg.background)
       
-      summary1 <- plotSummary1(finalTable)
       summary2 <- plotSummary2(avg.signal, avg.background, finalTable)
-
-      # generate output plots
-      output$summary1 <- renderPlot({
-      
-        plots <- grid.arrange(grobs = summary1, ncol = 1, top = "Processed Mean per Movie")
-      
-        print(plots)
-      
-      })
       
       output$summary2 <- renderPlot({
         
@@ -239,6 +228,7 @@ server <- function(input, output, session) {
         print(plots)
         
       })
+      
       
     }, error=function(e) {
       
