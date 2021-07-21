@@ -59,32 +59,71 @@ labelBackground = "background"
 table.signal <- collectList(indir, labelSignal, timeResolution)
 table.background <- collectList(indir, labelBackground, timeResolution)
 
-# calculates average mean intensity per frame
-avg.signal <- calcMean(table.signal)
-avg.background <- calcMean(table.background)
+# extracting experimental information from file name
+table.signal <- table.signal %>% separate(name, 
+                                          sep ="_", c("day", "treatment", "number"), 
+                                          remove=FALSE)
+table.background <- table.background %>% separate(name, 
+                                                  sep ="_", c("day", "treatment", "number"), 
+                                                  remove=FALSE)
+
+# reduce data for number of ROIs and area
+singleData_area <- subset(table.signal, variable == "area")
+singleData_area <- subset(singleData_area, time == 0)
+
+# compute & plot number of ROIs
+roiNumber <- singleData_area %>% group_by(treatment) %>% summarize(count = n())
+
+ggplot(data=roiNumber, aes(x=treatment, y=count)) +
+  geom_bar(stat="identity") +
+  ylab("Count") + 
+  scale_y_continuous(limits = c(0, 6000), breaks = seq(0, 6000, by = 500)) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"))
+
+head(singleData_area)
+
+# compute average area of ROI
+ggplot(data=singleData_area, aes(x=treatment, y=value)) +
+  geom_boxplot(outlier.colour="black", outlitreatmenter.shape=16, outlier.size=2, notch=FALSE) +
+  expand_limits(y = 0) +
+  scale_y_continuous(limits = c(0, 15), breaks = seq(0, 15, by = 1)) +
+  ylab("Area (Micron)") + 
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"))
+
+# calculates average mean intensity per frame per experiment
+table.signal_mean <- subset(table.signal, variable == "mean")
+table.signal_avg <- table.signal_mean %>% group_by(day, treatment, frame, time) %>% summarize(mean=mean(value), N = length(value), sd = sd(value), se = sd / sqrt(N))
+
+table.background_mean <- subset(table.background, variable == "mean")
+table.background_avg <- table.background_mean %>% group_by(day, treatment, frame, time) %>% summarize(mean=mean(value), N = length(value), sd = sd(value), se = sd / sqrt(N))
 
 # generate final table
-finalTable <- processData(indir, frameStimulation, avg.signal, avg.background)
+forBackgroundSubtraction <- merge(table.signal_avg, table.background_avg, by=c("day", "treatment", "frame", "time"), suffixes=c(".sig",".back"))
 
-tau <- calcTau(finalTable)
-# ==============================================================================
+# normalize mean signal with mean background intensity
+forBackgroundSubtraction$mean.corr <- forBackgroundSubtraction$mean.sig - forBackgroundSubtraction$mean.back
 
 # ==============================================================================
-# plots for one dataset treatment vs ctrl
+# normalizations
+forBackgroundSubtraction$name <- paste0(forBackgroundSubtraction$day, "_", forBackgroundSubtraction$treatment)
+
+surfaceNormalized <- surfaceNormalisation(forBackgroundSubtraction, frameStimulation)
+
+peakNormalized <- peakNormalisation(surfaceNormalized)
+
+finalTable <- sortFrames(peakNormalized)
+
 head(finalTable)
 
-# create average for final table per treatment
-finalTable_1 <- finalTable %>% separate(name, sep ="_", c("day", "treatment", "number"), remove=FALSE)
-# finalTable_1 <- finalTable %>% separate(name, sep ="_", c("treatment", "number"), remove=FALSE)
-head(finalTable_1)
-#
-finalTable_2 <- finalTable_1 %>% group_by(treatment, time) %>% summarise(value = mean(surf_norm))
-head(finalTable_1)
-# compute peaks
-peaks <- finalTable_2 %>% summarise(max = max(value))
-
-# plots
-ggplot(data=finalTable_2, aes(x=time, y=value, group = treatment, color = treatment)) +
+# ==============================================================================
+# plots treatment vs ctrl
+ggplot(data=finalTable, aes(x=time, y=surf_norm, group = name, color = name)) +
   geom_line() + 
   theme_light() +
   expand_limits(x = 0, y = 0.9) +
@@ -98,12 +137,7 @@ ggplot(data=finalTable_2, aes(x=time, y=value, group = treatment, color = treatm
         panel.background = element_blank(), 
         axis.line = element_line(colour = "black"))
 
-finalTable_3 <- subset(finalTable_1, day %in% c("160629", "160525" ) ) %>% group_by(treatment, time) %>% summarise(value = mean(peak_norm))
-
-finalTable_3 <- subset(finalTable_1, day %in% c( "160629" ) ) %>% group_by(treatment, time) %>% summarise(value = mean(surf_norm))
-head(finalTable_3)
-
-ggplot(finalTable_3, aes(x=time, y=value, group = treatment, color = treatment)) +
+ggplot(finalTable, aes(x=time, y=peak_norm, group = name, color = name)) +
   geom_line() + 
   theme_light() +
   # expand_limits(x = 0, y = 0.9) +
@@ -117,11 +151,10 @@ ggplot(finalTable_3, aes(x=time, y=value, group = treatment, color = treatment))
         panel.background = element_blank(), 
         axis.line = element_line(colour = "black"))
 
-head(finalTable_1)
-finalTable_4 <- finalTable_1 %>% group_by(day, treatment, time) %>% summarise(value = mean(peak_norm))
-head(finalTable_4)
+# ==============================================================================
+finalTable_avg_surf <- finalTable %>% group_by(treatment, frame, time) %>% summarize(mean=mean(surf_norm), N = length(surf_norm), sd = sd(surf_norm), se = sd / sqrt(N))
 
-ggplot(subset(finalTable_4, treatment %in% "pN-Blebb"), aes(x=time, y=value, group = day, color = day)) +
+ggplot(finalTable_avg_surf, aes(x=time, y=mean, group = treatment, color = treatment)) +
   geom_line() + 
   theme_light() +
   # expand_limits(x = 0, y = 0.9) +
@@ -129,16 +162,30 @@ ggplot(subset(finalTable_4, treatment %in% "pN-Blebb"), aes(x=time, y=value, gro
   # scale_y_continuous(limits = c(0.9, 1.7), breaks = seq(0.9, 1.7, by = 0.1)) +
   xlab("Time (s)") + 
   ylab("Norm. fluorescence intensity (A.U.)") + 
-  ggtitle("Peak Norm") +
+  ggtitle("Avg. Surf Norm") +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         panel.background = element_blank(), 
         axis.line = element_line(colour = "black"))
 
-# number of ROIs
-table.signal_roi <- table.signal %>% group_by(name, roi) %>% distinct(roi) 
 
-table.signal_roi <- table.signal_roi %>% separate(name, sep ="_", c("day", "treatment", "number"))
+finalTable_avg_peak <- finalTable %>% group_by(treatment, frame, time) %>% summarize(mean=mean(peak_norm), N = length(peak_norm), sd = sd(peak_norm), se = sd / sqrt(N))
 
-table.signal_roi %>% group_by(treatment) %>% count()
-# table.signal_roi %>% group_by(name) %>% summarise(sum = sum(n))
+ggplot(finalTable_avg_peak, aes(x=time, y=mean, group = treatment, color = treatment)) +
+  geom_line() + 
+  theme_light() +
+  # expand_limits(x = 0, y = 0.9) +
+  # scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
+  # scale_y_continuous(limits = c(0.9, 1.7), breaks = seq(0.9, 1.7, by = 0.1)) +
+  xlab("Time (s)") + 
+  ylab("Norm. fluorescence intensity (A.U.)") + 
+  ggtitle("Avg. Surf Norm") +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"))
+
+# ==============================================================================
+# compute peaks
+
+# compute taus

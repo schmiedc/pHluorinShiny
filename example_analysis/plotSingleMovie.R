@@ -159,7 +159,7 @@ ggplot(data=singleData_avgSignal, aes(x=time, y=mean)) +
   xlab("Time (s)") + 
   ylab("Avg. fluorescence intensity (A.U.)") + 
   ggtitle(paste0("Average signal ", dataName)) +
-  theme(panel.grid.major = element_blank(), 
+  theme(panel.grid.major = elemeunt_blank(), 
         panel.grid.minor = element_blank(),
         panel.background = element_blank(), 
         axis.line = element_line(colour = "black"))
@@ -184,7 +184,7 @@ ggplot(data=singleData_avgBackground, aes(x=time, y=mean)) +
         panel.grid.minor = element_blank(),
         panel.background = element_blank(), 
         axis.line = element_line(colour = "black"))
-
+u
 # processed data
 singleData_finalTable <- subset(finalTable, name == dataName)
 singleData_finalTable$high_corr <- with(singleData_finalTable, singleData_finalTable$mean.corr + singleData_finalTable$sd.sig)
@@ -236,7 +236,7 @@ ggplot(data=singleData_finalTable, aes(x=time, y=peak_norm)) +
         panel.background = element_blank(), 
         axis.line = element_line(colour = "black"))
 
-# compute peaks
+# compute peak
 head(singleData_finalTable)
 peaks <- singleData_finalTable %>% summarise(max = max(surf_norm))
 peaks
