@@ -1,4 +1,4 @@
-setwd("/data1/FMP_Docs/Repositories/plugins_FMP/pHluorinShiny/")
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 packages <- c("gridExtra", "shiny", "shinyFiles", "reshape2", "plyr", "tidyverse", "broom", "xlsx", "ggplot2")
 if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
