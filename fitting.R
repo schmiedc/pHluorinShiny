@@ -29,7 +29,7 @@ calcTau <- function(inputDataframe) {
             
                 fit <- nls(peak_norm ~ SSasymp(time, yf, y0, log_alpha), data = reuptake)
                 
-                #fit <- nls(peak_norm ~ yf + (y0 - yf) * exp(-alpha * time), data = reuptake, start = list(y0 = 0, yf = 0, alpha = 0))
+                # fit <- nls(peak_norm ~ yf + (y0 - yf) * exp(-alpha * time), data = reuptake, start = list(y0 = 1, yf = 0, alpha = 5))
                 
                 
                 summary <- summary(fit)

@@ -7,7 +7,8 @@ source("fitting.R")
 
 # ============================================================================
 #
-#  DESCRIPTION: Plot Ctrl vs treatment from output data
+#  DESCRIPTION: Analyse Manual vs Automatic from processed results
+#               Ctrl vs Treatment
 #              
 #       AUTHOR: Christopher Schmied, 
 #      CONTACT: schmied@dzne.de
@@ -33,11 +34,10 @@ source("fitting.R")
 #
 # ============================================================================
 # where to get the files
-indir = "/data1/FMP_Docs/Projects/Publication_SynapseJ/pHluorinJ_Data/AutomaticAnalysisOut/"
+indir = "/data1/FMP_Docs/Projects/Publication_SynapseJ/pHluorinJ_Data/RevisedAnalysis/"
 
 # where to save the data
 outdir = indir
-# outdir = "/home/schmiedc/Desktop/Output_160525/"
 
 # ============================================================================
 resultname = "Test"
@@ -55,8 +55,8 @@ labelSignal = "Spot"
 labelBackground = "background"
 
 # get raw data
-table.signal <- collectList(indir, labelSignal, timeResolution)
-table.background <- collectList(indir, labelBackground, timeResolution)
+table.signal <- read_csv(paste0(indir,"_RawSignal.csv"))
+table.background <- read_csv(paste0(indir,"_RawBackground.csv"))
 
 # extracting experimental information from file name
 table.signal <- table.signal %>% separate(name, 
@@ -85,8 +85,9 @@ ggplot(data=roiNumber, aes(x=treatment, y=count)) +
 # compute average area of ROI
 ggplot(data=singleData_area, aes(x=treatment, y=value)) +
   geom_boxplot(outlier.colour="black", outlitreatmenter.shape=16, outlier.size=2, notch=FALSE) +
+  stat_boxplot(geom = 'errorbar', width = 0.1) +
   expand_limits(y = 0) +
-  scale_y_continuous(limits = c(0, 15), breaks = seq(0, 15, by = 1)) +
+  # scale_y_continuous(limits = c(0, 15), breaks = seq(0, 15, by = 1)) +
   ylab("Area (Micron)") + 
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
@@ -95,7 +96,6 @@ ggplot(data=singleData_area, aes(x=treatment, y=value)) +
 
 # filter traces where peak is in the stimulation range (10s - 20s)
 table.signal_mean_filter <- subset(table.signal, variable == "mean")
-head(table.signal_mean_filter)
 peaks <- table.signal_mean_filter %>% group_by(name, roi) %>% summarise(value = max(value))
 peaks_frame <- left_join(peaks, table.signal_mean_filter, by = c("name", "roi", "value"))
 
@@ -134,7 +134,7 @@ ggplot(data=finalTable, aes(x=time, y=surf_norm, group = name, color = name)) +
   theme_light() +
   expand_limits(x = 0, y = 0.9) +
   # scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
-  scale_y_continuous(limits = c(0.9, 2.5), breaks = seq(0.9, 2.5, by = 0.1)) +
+  # scale_y_continuous(limits = c(0.9, 2.5), breaks = seq(0.9, 2.5, by = 0.1)) +
   xlab("Time (s)") + 
   ylab("Norm. fluorescence intensity (A.U.)") + 
   ggtitle("Surf Norm ") +
@@ -160,12 +160,18 @@ ggplot(finalTable, aes(x=time, y=peak_norm, group = name, color = name)) +
 # ==============================================================================
 finalTable_avg_surf <- finalTable %>% group_by(treatment, frame, time) %>% summarize(mean=mean(surf_norm), N = length(surf_norm), sd = sd(surf_norm), se = sd / sqrt(N))
 
+finalTable_avg_surf$high_corr <- with(finalTable_avg_surf, finalTable_avg_surf$mean + finalTable_avg_surf$sd)
+finalTable_avg_surf$low_corr <-  with(finalTable_avg_surf, finalTable_avg_surf$mean - finalTable_avg_surf$sd)
+
+head(finalTable_avg_surf)
+
 ggplot(finalTable_avg_surf, aes(x=time, y=mean, group = treatment, color = treatment)) +
   geom_line() + 
-  theme_light() +
+  guides(colour=FALSE)  + 
+  geom_ribbon(aes(ymin = low_corr, ymax = high_corr, colour=treatment, group=treatment, fill = treatment ), alpha=.3) +
   # expand_limits(x = 0, y = 0.9) +
-  # scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
-  # scale_y_continuous(limits = c(0.9, 1.7), breaks = seq(0.9, 1.7, by = 0.1)) +
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
+  #scale_y_continuous(limits = c(0.9, 2.0), breaks = seq(0.9, 2.0, by = 0.1)) +
   xlab("Time (s)") + 
   ylab("Norm. fluorescence intensity (A.U.)") + 
   ggtitle("Avg. Surf Norm") +
@@ -174,14 +180,17 @@ ggplot(finalTable_avg_surf, aes(x=time, y=mean, group = treatment, color = treat
         panel.background = element_blank(), 
         axis.line = element_line(colour = "black"))
 
-
 finalTable_avg_peak <- finalTable %>% group_by(treatment, frame, time) %>% summarize(mean=mean(peak_norm), N = length(peak_norm), sd = sd(peak_norm), se = sd / sqrt(N))
+
+finalTable_avg_peak$high_corr <- with(finalTable_avg_peak, finalTable_avg_peak$mean + finalTable_avg_peak$sd)
+finalTable_avg_peak$low_corr <-  with(finalTable_avg_peak, finalTable_avg_peak$mean - finalTable_avg_peak$sd)
 
 ggplot(finalTable_avg_peak, aes(x=time, y=mean, group = treatment, color = treatment)) +
   geom_line() + 
-  theme_light() +
+  guides(colour=FALSE)  + 
+  geom_ribbon(aes(ymin = low_corr, ymax = high_corr, colour=treatment, group=treatment, fill = treatment ), alpha=.3) +
   # expand_limits(x = 0, y = 0.9) +
-  # scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
   # scale_y_continuous(limits = c(0.9, 1.7), breaks = seq(0.9, 1.7, by = 0.1)) +
   xlab("Time (s)") + 
   ylab("Norm. fluorescence intensity (A.U.)") + 
@@ -199,8 +208,12 @@ peaks <- peaks %>% separate(name, sep ="_", c("day", "treatment"), remove=FALSE)
 
 # plot peak difference
 ggplot(data=peaks, aes(x=treatment, y=deltaMax)) +
-  geom_boxplot(outlier.colour="black") +
+  geom_boxplot(outlier.size = 0, outlier.shape = 1) +
+  stat_boxplot(geom = 'errorbar', width = 0.2) +
+  geom_jitter(width = 0.1) +
   ylab("delta F (exocytosis)") + 
+  expand_limits(y = 0) +
+  scale_y_continuous(limits = c(0, 2.0), breaks = seq(0, 2.0, by = 0.2)) +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         panel.background = element_blank(), 
@@ -210,11 +223,96 @@ ggplot(data=peaks, aes(x=treatment, y=deltaMax)) +
 tau <- calcTau(finalTable)
 tau <- tau %>% separate(name, sep ="_", c("day", "treatment"), remove=FALSE)
 
-
-# compute average area of ROI
 ggplot(data=tau, aes(x=treatment, y=tau)) +
-  geom_boxplot(outlier.colour="black") +
+  geom_boxplot(outlier.size = 0, outlier.shape = 1) +
+  stat_boxplot(geom = 'errorbar', width = 0.2) +
+  geom_jitter(width = 0.1) +
+  ylab("tau") + 
+  expand_limits(y = 0) +
+  scale_y_continuous(limits = c(0, 125, breaks = seq(0, 125, by = 10)))+
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"))
+
+# ==============================================================================
+# manual analysis
+table.signal_manual <- read_csv(paste0(indir,"ManualAnalysisResults.csv"))
+
+# ==============================================================================
+finalTable_avg_surf_manual <- table.signal_manual %>% group_by(treatment, time) %>% summarize(mean=mean(surf_norm), N = length(surf_norm), sd = sd(surf_norm), se = sd / sqrt(N))
+
+finalTable_avg_surf_manual$high_corr <- with(finalTable_avg_surf_manual, finalTable_avg_surf_manual$mean + finalTable_avg_surf_manual$sd)
+finalTable_avg_surf_manual$low_corr <-  with(finalTable_avg_surf_manual, finalTable_avg_surf_manual$mean - finalTable_avg_surf_manual$sd)
+
+ggplot(finalTable_avg_surf_manual, aes(x=time, y=mean, group = treatment, color = treatment)) +
+  geom_line() + 
+  guides(colour=FALSE)  + 
+  geom_ribbon(aes(ymin = low_corr, ymax = high_corr, colour=treatment, group=treatment, fill = treatment ), alpha=.3) +
+  # expand_limits(x = 0, y = 0.9) +
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
+  #scale_y_continuous(limits = c(0.9, 2.0), breaks = seq(0.9, 2.0, by = 0.1)) +
+  xlab("Time (s)") + 
+  ylab("Norm. fluorescence intensity (A.U.)") + 
+  ggtitle("Avg. Surf Norm") +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"))
+
+finalTable_avg_peak_manual <- table.signal_manual %>% group_by(treatment, time) %>% summarize(mean=mean(peak_norm), N = length(peak_norm), sd = sd(peak_norm), se = sd / sqrt(N))
+
+finalTable_avg_peak_manual$high_corr <- with(finalTable_avg_peak_manual, finalTable_avg_peak_manual$mean + finalTable_avg_peak_manual$sd)
+finalTable_avg_peak_manual$low_corr <-  with(finalTable_avg_peak_manual, finalTable_avg_peak_manual$mean - finalTable_avg_peak_manual$sd)
+
+ggplot(finalTable_avg_peak_manual, aes(x=time, y=mean, group = treatment, color = treatment)) +
+  geom_line() + 
+  guides(colour=FALSE)  + 
+  geom_ribbon(aes(ymin = low_corr, ymax = high_corr, colour=treatment, group=treatment, fill = treatment ), alpha=.3) +
+  # expand_limits(x = 0, y = 0.9) +
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
+  # scale_y_continuous(limits = c(0.9, 1.7), breaks = seq(0.9, 1.7, by = 0.1)) +
+  xlab("Time (s)") + 
+  ylab("Norm. fluorescence intensity (A.U.)") + 
+  ggtitle("Avg. Peak Norm") +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"))
+
+# ==============================================================================
+# compute peaks
+peaks_manual <- table.signal_manual %>% group_by(day, treatment) %>% summarise(max = max(surf_norm))
+peaks_manual$deltaMax <- peaks_manual$max - 1
+
+# plot peak difference
+ggplot(data=peaks_manual, aes(x=treatment, y=deltaMax)) +
+  geom_boxplot(outlier.size = 0, outlier.shape = 1) +
+  stat_boxplot(geom = 'errorbar', width = 0.2) +
+  geom_jitter(width = 0.1) +
   ylab("delta F (exocytosis)") + 
+  expand_limits(y = 0) +
+  scale_y_continuous(limits = c(0, 2.0), breaks = seq(0, 2.0, by = 0.2)) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"))
+
+# compute taus
+table.signal_manual$name <- paste0(table.signal_manual$day, "_", table.signal_manual$treatment)
+tau_manual <- calcTau(table.signal_manual)
+tau_manual <- tau_manual %>% separate(name, sep ="_", c("day", "treatment"), remove=FALSE)
+
+tau_manual <- tau_manual[!(tau_manual$tau==1),]
+tau_manual
+# compute average area of ROI
+ggplot(data=tau_manual, aes(x=treatment, y=tau)) +
+  geom_boxplot(outlier.size = 0, outlier.shape = 1) +
+  stat_boxplot(geom = 'errorbar', width = 0.1) +
+  geom_jitter(width = 0.2) +
+  ylab("delta F (exocytosis)") + 
+  expand_limits(y = 0) +
+  scale_y_continuous(limits = c(0, 125, breaks = seq(0, 125, by = 10)))+
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
         panel.background = element_blank(), 
