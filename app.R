@@ -1,6 +1,4 @@
-setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
-
-packages <- c("gridExtra", "shiny", "shinyFiles", "reshape2", "plyr", "tidyverse", "broom", "xlsx", "ggplot2")
+packages <- c("gridExtra", "shiny", "shinyFiles", "reshape2", "plyr", "tidyverse", "broom", "ggplot2", "rstudioapi")
 if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
   install.packages(setdiff(packages, rownames(installed.packages())))  
 }
@@ -8,6 +6,9 @@ if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
 library(gridExtra)
 library(shiny)
 library(shinyFiles)
+
+# specify the location where to find scripts
+setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 
 source("dataProcessing.R")
 source("saveData.R")
