@@ -40,8 +40,6 @@ y0
 # yTimeConstant - yf = (y0 - yf) * exp(-alpha * timeconstant)
 # ( yTimeConstant - yf ) / (y0 - yf) = exp(-alpha * timeconstant)
 # log( ( yTimeConstant - yf ) / (y0 - yf) ) = -alpha * timeconstant
-tau = log( (y - yf) / (y0 - yf) ) / - alpha
-tau
 
 qplot(reuptake$time, reuptake$peak_norm, data =  augment(fit)) + 
     geom_hline(yintercept=y) +

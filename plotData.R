@@ -44,7 +44,7 @@ plotRawMean <- function(dataTable){
       xlab("time (s)") + 
       ylab("Fluorescence intensity (a.u.)") + 
       #ylim(0, 800) +
-      ggtitle(paste0("Raw data ", names)) 
+      ggtitle(names) 
   }
   
   return (plots)
@@ -62,7 +62,7 @@ plotRawMean_single <- function(dataTable, dataName){
     theme_light() +
     xlab("time (s)") + 
     ylab("Fluorescence intensity (a.u.)") + 
-    ggtitle(paste0("Raw data ", dataName)) 
+    ggtitle(dataName) 
     
   return(single_plot)
   

@@ -2,7 +2,7 @@ library(tidyverse)
 library(broom)
 library(plyr)
 
-calcTau <- function(inputDataframe) {
+calcTau <- function(inputDataframe, timepoint_fit) {
     
         # inputDataframe = finalTable
         
@@ -16,6 +16,7 @@ calcTau <- function(inputDataframe) {
             
             # detect peak of curve, get time and then cut off data at that point
             reuptake <- subset( name.table, time >= name.table$time[ which.max( name.table$peak_norm ) ] )
+            # reuptake <- subset( name.table, time >= timepoint_fit)
             
             # self-starting function, 
             # a special function for curve fitting that guesses its own start parameters. 

@@ -84,15 +84,14 @@ finalTable <- sortFrames(peakNormalized)
 # ==============================================================================
 finalTable_avg_surf <- finalTable %>% group_by(frame, time) %>% summarize(mean=mean(surf_norm), N = length(surf_norm), sd = sd(surf_norm), se = sd / sqrt(N))
 
-finalTable_avg_surf$high_corr <- with(finalTable_avg_surf, finalTable_avg_surf$mean + finalTable_avg_surf$sd)
-finalTable_avg_surf$low_corr <-  with(finalTable_avg_surf, finalTable_avg_surf$mean - finalTable_avg_surf$sd)
-
-head(finalTable_avg_surf)
+finalTable_avg_surf$high_corr <- with(finalTable_avg_surf, finalTable_avg_surf$mean + finalTable_avg_surf$se)
+finalTable_avg_surf$low_corr <-  with(finalTable_avg_surf, finalTable_avg_surf$mean - finalTable_avg_surf$se)
 
 ggplot(finalTable_avg_surf, aes(x=time, y=mean)) +
   geom_line() + 
   guides(colour=FALSE)  + 
   expand_limits(x = 0, y = 0) +
+  geom_ribbon(aes(ymin = low_corr, ymax = high_corr), alpha=.3) +
   scale_x_continuous(breaks = scales::pretty_breaks(n = 20)) +
   scale_y_continuous(limits = c(0, 3.5), breaks = seq(0, 3.5, by =0.5)) +
   xlab("Time (s)") + 
@@ -108,10 +107,22 @@ ggplot(finalTable_avg_surf, aes(x=time, y=mean)) +
 table.signal_manual <- read_csv(paste0(indir,"CaImaging_Manual.csv"))
 head(table.signal_manual)
 
-ggplot(table.signal_manual, aes(x=X1, y=Mean)) +
+table.signal_manual$Mean <- NULL
+
+table.signal_manual_long <- table.signal_manual %>% gather( "image", "value", -X1)
+
+table.signal_manual_avg <- table.signal_manual_long %>% group_by(X1) %>% summarize(mean=mean(value), N = length(value), sd = sd(value), se = sd / sqrt(N))
+
+table.signal_manual_avg$high_corr <- with(table.signal_manual_avg, table.signal_manual_avg$mean + table.signal_manual_avg$se)
+table.signal_manual_avg$low_corr <-  with(table.signal_manual_avg, table.signal_manual_avg$mean - table.signal_manual_avg$se)
+
+head(table.signal_manual_avg)
+
+ggplot(table.signal_manual_avg, aes(x=X1, y=mean)) +
   geom_line() + 
   guides(colour=FALSE)  + 
   expand_limits(x = 0, y = 0) +
+  geom_ribbon(aes(ymin = low_corr, ymax = high_corr), alpha=.3) +
   scale_x_continuous(breaks = scales::pretty_breaks(n = 20)) +
   scale_y_continuous(limits = c(0, 3.5), breaks = seq(0, 3.5, by =0.5)) +
   xlab("Time (s)") + 
