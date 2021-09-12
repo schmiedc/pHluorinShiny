@@ -6,7 +6,7 @@ source("plotData.R")
 source("fitting.R")
 # ============================================================================
 #
-#  DESCRIPTION: Data analysis for Fíji pHlorin workflow
+#  DESCRIPTION: Data analysis for Fíji pHluorin workflow
 #              
 #       AUTHOR: Christopher Schmied, 
 #      CONTACT: schmied@dzne.de
@@ -32,10 +32,10 @@ source("fitting.R")
 #
 # ============================================================================
 # where to get the files
-indir = "/data1/FMP_Docs/Projects/Publication_SynapseJ/pHluorinJ_Data/TestSet/Output_160525/"
+indir = "/data1/FMP_Docs/Projects/Publication_SynapseJ/TestSingle_160525/"
 
 # where to save the data
-outdir = "/data1/FMP_Docs/Projects/Publication_SynapseJ/pHluorinJ_Data/TestSet/Output_160525_R/"
+outdir = "/data1/FMP_Docs/Projects/Publication_SynapseJ/TestSingle_out/"
 
 # ============================================================================
 resultname = "Test"
@@ -56,21 +56,12 @@ labelBackground = "background"
 table.signal <- collectList(indir, labelSignal, timeResolution)
 table.background <- collectList(indir, labelBackground, timeResolution)
 
-unique(table.signal$name)
-
-
 # calculates average mean intensity per frame
 avg.signal <- calcMean(table.signal)
 avg.background <- calcMean(table.background)
 
 # generate final table
 finalTable <- processData(indir, frameStimulation, avg.signal, avg.background)
-
-tau <- calcTau(finalTable)
-
-# save files
-# writeToCsv(outdir, resultname, table.signal, table.background, finalTable, tau)
-#writeToXlsx(outdir, resultname, table.signal, table.background, finalTable, tau)
 
 # ==============================================================================
 # Plotting
@@ -95,13 +86,28 @@ singleData <- subset(mean, name == "DMSO_1")
 
 single_plot <- ggplot(data=singleData, aes(x=time, y=value, color = roi, group=roi)) +
         geom_line() + 
-        guides(colour=FALSE)  + 
+        guides(colour="none")  + 
         theme_light() +
         xlab("time (s)") + 
         ylab("Fluorescence intensity (a.u.)") + 
         ggtitle(paste0("Raw data ", "DMSO_1")) 
 
-single_plot
+# ==============================================================================
+
+count <- as.data.frame(table(finalTable$name))
+
+detail <- list()
+
+for (names in count$Var1){
+        
+        detail[["one"]] <- plotRawMean_single(table.signal, names)
+        detail[["two"]] <- plotRawMean_single(table.background, names)
+        detail[["three"]] <- plotMean_single(finalTable, names)
+
+}
+
+
+plots <- grid.arrange(grobs = detail, ncol = 3, top = "Raw traces")
 
 # ==============================================================================
 # Split between DMSO and pN-Blebb

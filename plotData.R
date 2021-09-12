@@ -63,27 +63,34 @@ plotRawMean_single <- function(dataTable, dataName){
     xlab("time (s)") + 
     ylab("Fluorescence intensity (a.u.)") + 
     ggtitle(dataName) 
-    
+  
   return(single_plot)
   
 }
 
-plotRawMean_single <- function(dataTable, dataName){
+# plotting the raw values of all the experiments
+plotMean_single <- function(dataTable, dataName){
   
-  mean <- subset(dataTable, variable == "mean" )
-  singleData <- subset(mean, name == dataName)
+  dataTable <- finalTable
+  singleData <- subset(dataTable, name == dataName)
   
-  single_plot <- ggplot(data=singleData, aes(x=time, y=value, color = roi, group=roi)) +
-    geom_line() + 
-    guides(colour="none")  + 
+  singleData$high <- with(singleData, singleData$mean.corr + singleData$sd.sig)
+  singleData$low <-  with(singleData, singleData$mean.corr - singleData$sd.sig)
+  
+  plot <- ggplot(data=singleData, aes(x=time, y=mean.corr )) +
+    geom_ribbon(aes(ymin = low, ymax = high, colour=name, group=name, fill = name ), alpha=.3) +
+    geom_line(colour = "black") + 
+    guides(fill = "none", color = "none", linetype = "none", shape = "none") + 
     theme_light() +
     xlab("time (s)") + 
-    ylab("Fluorescence intensity (a.u.)") + 
-    ggtitle(paste0("Raw data ", dataName)) 
+    ylab("Avg. Fluorescence intensity (a.u.)") + 
+    ggtitle(paste0("Avg. grey value +/- SD")) 
   
-  return(single_plot)
+  
+  return (plot)
   
 }
+
 
 plotRawArea <- function(dataTable, label) {
   
@@ -98,7 +105,7 @@ plotRawArea <- function(dataTable, label) {
     ylab("Area (square micrometer)") +
     ggtitle(paste0("Area of ", label, " ROIs")) +
     theme(axis.text.x = element_text(angle = 90, hjust = 1))
-
+  
   return (areaplot)
   
 }
@@ -110,6 +117,7 @@ plotMean <- function(dataTable, column, title, sd){
     
     dataTable$high <- with(dataTable, dataTable$mean + dataTable$sd)
     dataTable$low <-  with(dataTable, dataTable$mean - dataTable$sd)
+    
     plot <- ggplot(data=dataTable, aes(x=time, y=mean, colour=name, group=name, fill = name)) +
       geom_ribbon(aes(ymin = low, ymax = high, colour=name, group=name, fill = name ), alpha=.3) +
       geom_line(colour = "black") + 
@@ -118,7 +126,7 @@ plotMean <- function(dataTable, column, title, sd){
       xlab("time (s)") + 
       ylab("Avg. Fluorescence intensity (a.u.)") + 
       #ylim(0, 450) +
-      ggtitle(paste0("Average Grey value of ", title)) 
+      ggtitle(paste0("Avg. grey value of ", title)) 
     
   } else if (sd == FALSE) {
     
@@ -130,10 +138,10 @@ plotMean <- function(dataTable, column, title, sd){
       theme_light() +
       xlab("time (s)") + 
       ylab("Avg. Fluorescence intensity (a.u.)") + 
-      ggtitle(paste0("Average Grey value of active boutons ", title)) 
+      ggtitle(paste0("Avg. grey value of ", title)) 
     
   }
-
+  
   return (plot)
   
 }
