@@ -42,7 +42,7 @@ plotRawMean <- function(dataTable){
       guides(colour="none")  + 
       theme_light() +
       xlab("time (s)") + 
-      ylab("Fluorescence intensity (a.u.)") + 
+      ylab("Fluorescence (a.u.)") + 
       #ylim(0, 800) +
       ggtitle(names) 
   }
@@ -61,7 +61,7 @@ plotRawMean_single <- function(dataTable, dataName){
     guides(colour="none")  + 
     theme_light() +
     xlab("time (s)") + 
-    ylab("Fluorescence intensity (a.u.)") + 
+    ylab("Fluorescence (a.u.)") + 
     ggtitle(dataName) 
   
   return(single_plot)
@@ -83,8 +83,8 @@ plotMean_single <- function(dataTable, dataName){
     guides(fill = "none", color = "none", linetype = "none", shape = "none") + 
     theme_light() +
     xlab("time (s)") + 
-    ylab("Avg. Fluorescence intensity (a.u.)") + 
-    ggtitle(paste0("Avg. grey value +/- SD")) 
+    ylab("Avg. Fluorescence (a.u.)") + 
+    ggtitle(paste0("Avg. background subtracted +/- SD")) 
   
   
   return (plot)
@@ -103,7 +103,7 @@ plotRawArea <- function(dataTable, label) {
     geom_boxplot(outlier.colour="black", outlier.shape=16, outlier.size=2, notch=FALSE) + 
     xlab("Movie name") + 
     ylab("Area (square micrometer)") +
-    ggtitle(paste0("Area of ", label, " ROIs")) +
+    ggtitle(paste0("Area ", label, " ROIs")) +
     theme(axis.text.x = element_text(angle = 90, hjust = 1))
   
   return (areaplot)
@@ -124,9 +124,9 @@ plotMean <- function(dataTable, column, title, sd){
       guides(fill = "none", color = "none", linetype = "none", shape = "none") + 
       theme_light() +
       xlab("time (s)") + 
-      ylab("Avg. Fluorescence intensity (a.u.)") + 
+      ylab("Avg. Fluorescence (a.u.)") + 
       #ylim(0, 450) +
-      ggtitle(paste0("Avg. grey value of ", title)) 
+      ggtitle(paste0("Avg. grey value ", title)) 
     
   } else if (sd == FALSE) {
     
@@ -137,8 +137,8 @@ plotMean <- function(dataTable, column, title, sd){
       guides(fill = "none", color = "none", linetype = "none", shape = "none") + 
       theme_light() +
       xlab("time (s)") + 
-      ylab("Avg. Fluorescence intensity (a.u.)") + 
-      ggtitle(paste0("Avg. grey value of ", title)) 
+      ylab("Avg. Fluorescence (a.u.)") + 
+      ggtitle(paste0("Avg. grey value ", title)) 
     
   }
   

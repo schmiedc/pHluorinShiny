@@ -96,19 +96,26 @@ single_plot <- ggplot(data=singleData, aes(x=time, y=value, color = roi, group=r
 
 count <- as.data.frame(table(finalTable$name))
 
-detail <- list()
+detail_full <- list()
 
 for (names in count$Var1){
         
+        detail <- list()
         detail[["one"]] <- plotRawMean_single(table.signal, names)
         detail[["two"]] <- plotRawMean_single(table.background, names)
         detail[["three"]] <- plotMean_single(finalTable, names)
 
+        detail_full[[names]] <- detail
 }
+flat_detail <- detail_full %>% flatten()
 
+test_plots <- marrangeGrob(flat_detail, ncol = 3, nrow = 4, top = "Processing results", layout_matrix = matrix(1:12, 4, 3, TRUE) )
 
-plots <- grid.arrange(grobs = detail, ncol = 3, top = "Raw traces")
-
+ggsave(plot = test_plots,
+       file=file.path(outdir, paste0(resultname, "test.pdf") ),
+       width = 297, 
+       height = 210, 
+       units = "mm") 
 # ==============================================================================
 # Split between DMSO and pN-Blebb
 # Create plots Raw Signal, Raw Background, 

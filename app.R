@@ -275,19 +275,41 @@ server <- function(input, output, session) {
         # plot data
         # ======================================================================
         # create result plots
-        raw_signal <- plotRawMean(table.signal)
-        raw_signal_grids <-  marrangeGrob(raw_signal, ncol = 3, nrow = 4, top = "Raw grey values of active boutons")
-        ggsave(plot = raw_signal_grids,
-               file=file.path(outputDirectory, paste0(resultname, "_rawPlotsSignal.pdf") ), 
-               width = 297, 
-               height = 210, 
-               units = "mm") 
+        #raw_signal <- plotRawMean(table.signal)
+        #raw_signal_grids <-  marrangeGrob(raw_signal, ncol = 3, nrow = 4, top = "Raw grey values of active boutons")
+        #ggsave(plot = raw_signal_grids,
+        #       file=file.path(outputDirectory, paste0(resultname, "_rawPlotsSignal.pdf") ), 
+        #       width = 297, 
+        #       height = 210, 
+        #       units = "mm") 
         
         # plots Raw grey values and area of background
-        raw_signal <- plotRawMean(table.background)
-        raw_signal_grids <-  marrangeGrob(raw_signal, ncol = 3, nrow = 4, top = "Raw grey values of background")
-        ggsave(plot = raw_signal_grids,
-               file=file.path(outputDirectory, paste0(resultname, "_rawPlotsBackground.pdf") ), 
+        #raw_signal <- plotRawMean(table.background)
+        #raw_signal_grids <-  marrangeGrob(raw_signal, ncol = 3, nrow = 4, top = "Raw grey values of background")
+        #ggsave(plot = raw_signal_grids,
+        #       file=file.path(outputDirectory, paste0(resultname, "_rawPlotsBackground.pdf") ), 
+        #        width = 297, 
+        #       height = 210, 
+        #       units = "mm") 
+        count <- as.data.frame(table(finalTable$name))
+        
+        detail_full <- list()
+        
+        for (names in count$Var1){
+          
+          detail <- list()
+          detail[["one"]] <- plotRawMean_single(table.signal, names)
+          detail[["two"]] <- plotRawMean_single(table.background, names)
+          detail[["three"]] <- plotMean_single(finalTable, names)
+          
+          detail_full[[names]] <- detail
+        }
+        flat_detail <- detail_full %>% flatten()
+        
+        test_plots <- marrangeGrob(flat_detail, ncol = 3, nrow = 4, top = "Processing results", layout_matrix = matrix(1:12, 4, 3, TRUE) )
+        
+        ggsave(plot = test_plots,
+               file=file.path(outputDirectory, paste0(resultname, "_Raw_Mean.pdf") ),
                width = 297, 
                height = 210, 
                units = "mm") 
