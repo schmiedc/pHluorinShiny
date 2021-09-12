@@ -71,7 +71,6 @@ plotRawMean_single <- function(dataTable, dataName){
 # plotting the raw values of all the experiments
 plotMean_single <- function(dataTable, dataName){
   
-  dataTable <- finalTable
   singleData <- subset(dataTable, name == dataName)
   
   singleData$high <- with(singleData, singleData$mean.corr + singleData$sd.sig)

@@ -6,6 +6,7 @@ if (length(setdiff(packages, rownames(installed.packages()))) > 0) {
 library(gridExtra)
 library(shiny)
 library(shinyFiles)
+library(tidyverse)
 
 # specify the location where to find scripts
 setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
