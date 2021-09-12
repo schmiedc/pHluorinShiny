@@ -58,7 +58,7 @@ plotRawMean_single <- function(dataTable, dataName){
   
   single_plot <- ggplot(data=singleData, aes(x=time, y=value, color = roi, group=roi)) +
     geom_line() + 
-    guides(colour=FALSE)  + 
+    guides(colour="none")  + 
     theme_light() +
     xlab("time (s)") + 
     ylab("Fluorescence intensity (a.u.)") + 
@@ -75,7 +75,7 @@ plotRawMean_single <- function(dataTable, dataName){
   
   single_plot <- ggplot(data=singleData, aes(x=time, y=value, color = roi, group=roi)) +
     geom_line() + 
-    guides(colour=FALSE)  + 
+    guides(colour="none")  + 
     theme_light() +
     xlab("time (s)") + 
     ylab("Fluorescence intensity (a.u.)") + 
@@ -113,7 +113,7 @@ plotMean <- function(dataTable, column, title, sd){
     plot <- ggplot(data=dataTable, aes(x=time, y=mean, colour=name, group=name, fill = name)) +
       geom_ribbon(aes(ymin = low, ymax = high, colour=name, group=name, fill = name ), alpha=.3) +
       geom_line(colour = "black") + 
-      guides(fill = FALSE, color = FALSE, linetype = FALSE, shape = FALSE) + 
+      guides(fill = "none", color = "none", linetype = "none", shape = "none") + 
       theme_light() +
       xlab("time (s)") + 
       ylab("Avg. Fluorescence intensity (a.u.)") + 
@@ -126,7 +126,7 @@ plotMean <- function(dataTable, column, title, sd){
     plot <- ggplot(data=dataTable, aes(x=time, y=get(varname[1]), colour=name, group=name, fill = name)) +
       geom_ribbon(aes(ymin = get(varname[1]), ymax = get(varname[1]), colour=name, group=name, fill = name ), alpha=.3) +
       geom_line() +
-      guides(fill = FALSE, color = FALSE, linetype = FALSE, shape = FALSE) + 
+      guides(fill = "none", color = "none", linetype = "none", shape = "none") + 
       theme_light() +
       xlab("time (s)") + 
       ylab("Avg. Fluorescence intensity (a.u.)") + 
