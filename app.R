@@ -13,7 +13,6 @@ setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 source("dataProcessing.R")
 source("saveData.R")
 source("plotData.R")
-source("fitting.R")
 # ============================================================================
 #
 #  DESCRIPTION: Data analysis for Fíji pHlorin workflow
@@ -269,11 +268,9 @@ server <- function(input, output, session) {
         
         # generate final table
         finalTable <- processData(indir, input$frameStim, avg.signal, avg.background)
-        
-        tau <- calcTau(finalTable)
-        
+
         # save files
-        writeToCsv(outputDirectory, resultname, table.signal, table.background, finalTable, tau)
+        writeToCsv(outputDirectory, resultname, table.signal, table.background, finalTable)
         
         # plot data
         # ======================================================================
@@ -313,14 +310,13 @@ server <- function(input, output, session) {
         
         # Plots mean values per movie
         plot.list <- plotMeans(avg.signal, avg.background, finalTable)
-        
         test_plots <- marrangeGrob(plot.list, ncol = 1, nrow = 1, top = "Processing results")
         
         ggsave(plot = test_plots,
-               file=file.path(outputDirectory, paste0(resultname, "_meanResults.pdf") ),
-               width = 297, 
-               height = 210, 
-               units = "mm") 
+              file=file.path(outputDirectory, paste0(resultname, "_meanResults.pdf") ),
+              width = 297, 
+              height = 210, 
+              units = "mm") 
 
         showNotification("Data saved")
         

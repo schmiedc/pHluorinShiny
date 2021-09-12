@@ -39,7 +39,7 @@ plotRawMean <- function(dataTable){
     
     plots[[names]] <- ggplot(data=one.table, aes(x=time, y=value, colour=variable, group=roi)) +
       geom_line() + 
-      guides(colour=FALSE)  + 
+      guides(colour="none")  + 
       theme_light() +
       xlab("time (s)") + 
       ylab("Fluorescence intensity (a.u.)") + 
@@ -144,8 +144,9 @@ plotMeans <- function(avg.signal, avg.background, finalTable) {
   plot.list[["Peak Norm"]] <- plotMean(finalTable, "peak_norm", "peak normalized", FALSE)
   plot.list[["Surface Norm"]] <- plotMean(finalTable, "surf_norm", "surface normalized", FALSE)
   plot.list[["Corrected"]] <- plotMean(finalTable, "mean.corr", "background subtracted", FALSE)
-  plot.list[["Signal"]] <- plotMean(avg.signal, mean, "Signal", FALSE)
-  plot.list[["Background"]] <- plotMean(avg.background, mean, "Background", FALSE)
+  
+  plot.list[["Signal"]] <- plotMean(avg.signal, "mean", "Signal", FALSE)
+  plot.list[["Background"]] <- plotMean(avg.background, "mean", "Background", FALSE)
   
   return(plot.list)
   
