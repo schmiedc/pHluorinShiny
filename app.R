@@ -91,7 +91,7 @@ ui <- fluidPage(
       ),
       
       fluidRow(
-      tags$img(width = 450, src='FMP_Wort-Bildmarke_nebeneinander_gruen_RGB.png')
+      tags$img(width = 200, src='LogoSynActJ1.png')
       )
       
       ),
