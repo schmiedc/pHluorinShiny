@@ -16,7 +16,7 @@ source("saveData.R")
 source("plotData.R")
 # ============================================================================
 #
-#  DESCRIPTION: Data analysis for Fíji pHlorin workflow
+#  DESCRIPTION: Data analysis for Fíji SynActJ workflow
 #              
 #       AUTHOR: Christopher Schmied, 
 #      CONTACT: schmied@dzne.de
@@ -36,13 +36,13 @@ source("plotData.R")
 #
 #      VERSION: 1.0.0
 #      CREATED: 2018-05-24
-#     REVISION: 2018-08-07
+#     REVISION: 2021-09-13
 #
 # ============================================================================
 
 ui <- fluidPage( 
   
-  titlePanel("pHluorin Data Processing"),
+  titlePanel("SynActJ Data Processing"),
   
   sidebarLayout(position = "right",
   
