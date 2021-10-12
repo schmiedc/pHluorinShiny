@@ -14,13 +14,24 @@ Overview plots as well as detail plots are shown in the SynActJ Shiny App direct
 
 ## Installation
 
-Install r and r studio for running the rShiny app:<br/>
-[https://www.r-project.org/](https://www.r-project.org/)<br/>
-[https://rstudio.com/products/rstudio/download/](https://rstudio.com/products/rstudio/download/)<br/>
+For the data analysis you need to download R and RStudio: R Version 4.1.0<br>
+[Link to R](https://cran.r-project.org/bin/windows/base/)<br>
+Select version 4.1.0
 
-Then download the contents of the OrgaMapper_Rshiny repository:<br/>
-[Start download of repo](https://github.com/schmiedc/SynActJ_Shiny/archive/refs/heads/main.zip)
+RStudio 1.4.1717<br>
+[Link to RStudio](https://www.rstudio.com/products/rstudio/download/)
+
+1. Download the contents of the repository: SynActJ Shiny<br>
+  Click on the green button: **Code**.<br>
+  Press **Download ZIP** to download the scripts.
+2. Unzip the script to a location of your choice.
+3. Open the app.R file in RStudio.
+4. Start the application: press **Run App** - top right corner of RStudio.
+5. RStudio may ask to install or load extra packages - Download will take some time.
+6. Once these packages are installed and loaded the RShiny GUI should pop up.
+7. Optional: Press **Open in Browser** for a better rendering of the GUI.
 
 ## Documentation
 
 [SynActJ Shiny tutorial](https://schmiedc.github.io/SynActJ/pages/SynActJ_Shiny.html)<br/>
+
