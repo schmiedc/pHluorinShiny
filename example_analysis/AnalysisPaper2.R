@@ -1,13 +1,14 @@
-setwd("/data1/FMP_Docs/Repositories/plugins_FMP/pHluorinShiny/")
+setwd("/data1/FMP_Docs/Repositories/plugins_FMP/SynActJ_Shiny/")
 library(gridExtra)
+library(tidyverse)
+library(ggplot2)
 source("dataProcessing.R")
 source("saveData.R")
 source("plotData.R")
-source("fitting.R")
 
 # ============================================================================
 #
-#  DESCRIPTION: Extract number of ROIs
+#  DESCRIPTION: Extract and plot number of ROIs Manual vs Automatic analysis
 #              
 #       AUTHOR: Christopher Schmied, 
 #      CONTACT: schmied@dzne.de
@@ -20,20 +21,16 @@ source("fitting.R")
 #         BUGS:
 #        NOTES: 
 # DEPENDENCIES: ggplot2: install.packages("ggplot2")
-#               xlsx: install.packages("gxlsx")
-#               reshape2: install.packages("reshape2")
-#               plyr: install.packages("plyr")
 #               gridExtra: install.packages("gridExtra")
 #               tidyverse: install.packages("tidyverse")
-#               broom: install.packages("broom")
 #
 #      VERSION: 1.0.0
 #      CREATED: 2018-05-24
-#     REVISION: 2020-02-07
+#     REVISION: 2021-10-21
 #
 # ============================================================================
 # where to get the files
-indir = "/data1/FMP_Docs/Projects/Publication_SynapseJ/pHluorinJ_Data/RevisedAnalysis/"
+indir = "/data1/FMP_Docs/Projects/Publication_SynActJ/pHluorinJ_Data/RevisedAnalysis/"
 
 # where to save the data
 outdir = indir
@@ -51,14 +48,15 @@ timeResolution = 2
 frameStimulation = 5
 
 # ============================================================================
+# load data from manual analysis
 manual <- read_csv(paste0(indir,"DataTable_ROIs.csv"))
 
 sumROI <- manual %>% group_by(treatment) %>% drop_na(NumberROI)  %>% summarise(sumManual = sum(NumberROI))
 
 # ============================================================================
+# load data from automatic analysis
 auto <- read_csv(paste0(indir,"_RawSignal.csv"))
 auto <- auto %>% separate(name, sep ="_", c("day", "treatment", "number"), remove=FALSE)
-# singleData_area <- subset(auto, variable == "area")
 
 # filter traces where peak is in the stimulation range (10s - 20s)
 table.signal_mean_filter <- subset(auto, variable == "mean")
@@ -69,7 +67,6 @@ filtered_peaks <- peaks_frame %>% filter(time < 20)
 filtered_peaks_2 <- filtered_peaks %>% select(c(-value, -frame, -time, -variable, -value) )
 
 filtered_signal <- left_join(filtered_peaks_2, table.signal_mean_filter, by = c("name", "roi", "day", "treatment", "number"))
-
 
 # extracting experimental information from file name
 singleData_area <- subset(filtered_signal, time == 0)
