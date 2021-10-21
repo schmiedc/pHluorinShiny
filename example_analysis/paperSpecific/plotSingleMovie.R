@@ -8,7 +8,7 @@ library(ggplot2)
 
 # ============================================================================
 #
-#  DESCRIPTION: Data analysis for a single experiment
+#  DESCRIPTION: Data analysis for a single experiment for plots in paper
 #              
 #       AUTHOR: Christopher Schmied, 
 #      CONTACT: schmied@dzne.de
@@ -28,9 +28,9 @@ library(ggplot2)
 #               tidyverse: install.packages("tidyverse")
 #               broom: install.packages("broom")
 #
-#      VERSION: 1.0.0
+#      VERSION: 2.0.0
 #      CREATED: 2018-05-24
-#     REVISION: 2020-02-07
+#     REVISION: 2021-10-21
 #
 # ============================================================================
 # where to get the files
