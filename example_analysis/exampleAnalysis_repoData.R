@@ -111,15 +111,15 @@ filtered_signal <- left_join(filtered_peaks_2, table.signal_mean_filter, by = c(
 # ------------------------------------------------------------------------------
 # Averaging and normalization
 # ------------------------------------------------------------------------------
-# calculates average mean intensity per frame per experiment
+# calculates average mean intensity per frame per movie
 table.signal_mean <- subset(filtered_signal, variable == "mean")
-table.signal_avg <- table.signal_mean %>% group_by(treatment, frame, time) %>% dplyr::summarize(mean=mean(value), N = length(value), sd = sd(value), se = sd / sqrt(N))
+table.signal_avg <- table.signal_mean %>% group_by(treatment, frame, number, time) %>% dplyr::summarize(mean=mean(value), N = length(value), sd = sd(value), se = sd / sqrt(N))
 
 table.background_mean <- subset(table.background, variable == "mean")
-table.background_avg <- table.background_mean %>% group_by(treatment, frame, time) %>% dplyr::summarize(mean=mean(value), N = length(value), sd = sd(value), se = sd / sqrt(N))
+table.background_avg <- table.background_mean %>% group_by(treatment, frame, number, time) %>% dplyr::summarize(mean=mean(value), N = length(value), sd = sd(value), se = sd / sqrt(N))
 
 # generate final table
-forBackgroundSubtraction <- merge(table.signal_avg, table.background_avg, by=c("treatment", "frame", "time"), suffixes=c(".sig",".back"))
+forBackgroundSubtraction <- merge(table.signal_avg, table.background_avg, by=c("treatment", "frame", "number", "time"), suffixes=c(".sig",".back"))
 
 # normalize mean signal with mean background intensity
 forBackgroundSubtraction$mean.corr <- forBackgroundSubtraction$mean.sig - forBackgroundSubtraction$mean.back
@@ -130,6 +130,8 @@ surfaceNormalized <- surfaceNormalisation(forBackgroundSubtraction, frameStimula
 
 # peak normalization
 peakNormalized <- peakNormalisation(surfaceNormalized)
+
+peakNormalized$name <- paste0(peakNormalized$treatment, "_", peakNormalized$number)
 
 finalTable <- sortFrames(peakNormalized)
 

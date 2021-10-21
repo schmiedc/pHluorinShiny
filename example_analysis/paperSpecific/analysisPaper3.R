@@ -38,8 +38,7 @@ library("xlsx")
 # where to get the files
 indir = "/data1/FMP_Docs/Projects/Publication_SynActJ/DataAnalysis/pHluorin_data/revised_output/"
 
-# where to save the data
-outdir = indir
+outputDirectory = "/data1/FMP_Docs/Projects/Publication_SynActJ/DataAnalysis/pHluorin_data/Routput/"
 
 resultname = "Test"
 
@@ -55,8 +54,7 @@ frameStimulation = 5
 labelSignal = "Spot"
 labelBackground = "background"
 
-# ------------------------------------------------------------------------------
-outputDirectory = "/data1/FMP_Docs/Projects/Publication_SynActJ/DataAnalysis/pHluorin_data/Routput/"
+# Filter settings
 sd_multiplicator = 2
 peak_filter = 26
 
