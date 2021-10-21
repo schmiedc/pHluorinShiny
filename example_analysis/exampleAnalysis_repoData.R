@@ -31,10 +31,10 @@ library(ggplot2)
 #
 # ==============================================================================
 # where to get the files
-indir = "/data1/FMP_Docs/Projects/Publication_SynActJ/DataAnalysis/pHluorin_data/output/"
+indir = "/data1/FMP_Docs/Projects/Publication_SynActJ/DataAnalysis/ForZenodo/output/"
 
 # where to save the data
-outdir = "/data1/FMP_Docs/Projects/Publication_SynActJ/DataAnalysis/pHluorin_data/Routput/"
+outdir = "/data1/FMP_Docs/Projects/Publication_SynActJ/DataAnalysis/ForZenodo/Routput/"
 
 resultname = "Test"
 
@@ -59,11 +59,11 @@ table.background <- collectList(indir, labelBackground, timeResolution)
 
 # extracting experimental information from file name
 table.signal <- table.signal %>% separate(name, 
-                                          sep ="_", c("day", "treatment", "number"), 
+                                          sep ="_", c("treatment", "number"), 
                                           remove=FALSE)
 
 table.background <- table.background %>% separate(name, 
-                                                  sep ="_", c("day", "treatment", "number"), 
+                                                  sep ="_", c("treatment", "number"), 
                                                   remove=FALSE)
 
 # ------------------------------------------------------------------------------
@@ -106,24 +106,24 @@ peaks_frame <- left_join(peaks, table.signal_mean_filter, by = c("name", "roi", 
 # filter traces where peak is in the stimulation range ( < 20s)
 filtered_peaks <- peaks_frame %>% filter(time < 20)
 filtered_peaks_2 <- filtered_peaks %>% select(c(-value, -frame, -time, -variable, -value) )
-filtered_signal <- left_join(filtered_peaks_2, table.signal_mean_filter, by = c("name", "roi", "day", "treatment", "number"))
+filtered_signal <- left_join(filtered_peaks_2, table.signal_mean_filter, by = c("name", "roi", "treatment", "number"))
 
 # ------------------------------------------------------------------------------
 # Averaging and normalization
 # ------------------------------------------------------------------------------
 # calculates average mean intensity per frame per experiment
 table.signal_mean <- subset(filtered_signal, variable == "mean")
-table.signal_avg <- table.signal_mean %>% group_by(day, treatment, frame, time) %>% dplyr::summarize(mean=mean(value), N = length(value), sd = sd(value), se = sd / sqrt(N))
+table.signal_avg <- table.signal_mean %>% group_by(treatment, frame, time) %>% dplyr::summarize(mean=mean(value), N = length(value), sd = sd(value), se = sd / sqrt(N))
 
 table.background_mean <- subset(table.background, variable == "mean")
-table.background_avg <- table.background_mean %>% group_by(day, treatment, frame, time) %>% dplyr::summarize(mean=mean(value), N = length(value), sd = sd(value), se = sd / sqrt(N))
+table.background_avg <- table.background_mean %>% group_by(treatment, frame, time) %>% dplyr::summarize(mean=mean(value), N = length(value), sd = sd(value), se = sd / sqrt(N))
 
 # generate final table
-forBackgroundSubtraction <- merge(table.signal_avg, table.background_avg, by=c("day", "treatment", "frame", "time"), suffixes=c(".sig",".back"))
+forBackgroundSubtraction <- merge(table.signal_avg, table.background_avg, by=c("treatment", "frame", "time"), suffixes=c(".sig",".back"))
 
 # normalize mean signal with mean background intensity
 forBackgroundSubtraction$mean.corr <- forBackgroundSubtraction$mean.sig - forBackgroundSubtraction$mean.back
-forBackgroundSubtraction$name <- paste0(forBackgroundSubtraction$day, "_", forBackgroundSubtraction$treatment)
+forBackgroundSubtraction$name <- paste0(forBackgroundSubtraction$treatment)
 
 # surface normalization
 surfaceNormalized <- surfaceNormalisation(forBackgroundSubtraction, frameStimulation)
@@ -194,13 +194,5 @@ ggplot(finalTable_avg_peak, aes(x=time, y=mean, group = treatment, color = treat
 # compute peaks
 peaks <- finalTable %>% group_by(name) %>% dplyr::summarise(max = max(surf_norm))
 peaks$deltaMax <- peaks$max - 1
-peaks <- peaks %>% separate(name, sep ="_", c("day", "treatment"), remove=FALSE)
-
-# plot peak difference
-ggplot(data=peaks, aes(x=treatment, y=deltaMax)) +
-  geom_boxplot(outlier.colour="black") +
-  ylab("delta F (exocytosis)") + 
-  theme(panel.grid.major = element_blank(), 
-        panel.grid.minor = element_blank(),
-        panel.background = element_blank(), 
-        axis.line = element_line(colour = "black"))
+peaks <- peaks %>% separate(name, sep ="_", c("treatment"), remove=FALSE)
+peaks
