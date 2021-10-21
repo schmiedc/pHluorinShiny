@@ -1,9 +1,10 @@
-setwd("/data1/FMP_Docs/Repositories/plugins_FMP/pHluorinShiny/")
-library(gridExtra)
+setwd("/data1/FMP_Docs/Repositories/plugins_FMP/SynActJ_Shiny/")
 source("dataProcessing.R")
 source("saveData.R")
 source("plotData.R")
-source("fitting.R")
+library(gridExtra)
+library(tidyverse)
+library(ggplot2)
 
 # ============================================================================
 #
@@ -33,12 +34,10 @@ source("fitting.R")
 #
 # ============================================================================
 # where to get the files
-# indir = "/data1/FMP_Docs/Projects/Publication_SynapseJ/pHluorinJ_Data/AutomaticAnalysisOut/"
-indir = "/data1/FMP_Docs/Projects/Publication_SynapseJ/pHluorinJ_Data/Output_160525/"
+indir = "/data1/FMP_Docs/Projects/Publication_SynActJ/DataAnalysis/pHluorin_singleMovie/output_160525/"
 
 # where to save the data
-outdir = indir
-# outdir = "/home/schmiedc/Desktop/Output_160525/"
+outdir = "/data1/FMP_Docs/Projects/Publication_SynActJ/DataAnalysis/pHluorin_singleMovie/Routput/"
 
 # ============================================================================
 resultname = "Test"
@@ -102,7 +101,7 @@ singleData_rawSignal <- subset(singleData_rawSignal, name == dataName)
 
 ggplot(data=singleData_rawSignal, aes(x=time, y=value, group=roi, color = roi)) +
   geom_line() + 
-  guides(colour=FALSE)  + 
+  guides(colour="none")  + 
   theme_light() +
   expand_limits(x = 0, y = 0) +
   scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
@@ -121,7 +120,7 @@ singleData_rawBack <- subset(singleData_rawBack, name == dataName)
 
 ggplot(data=singleData_rawBack, aes(x=time, y=value, group=roi, color = roi)) +
   geom_line() + 
-  guides(colour=FALSE)  + 
+  guides(colour="none")  + 
   theme_light() +
   expand_limits(x = 0, y = 0) +
   scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
@@ -138,10 +137,10 @@ ggplot(data=singleData_rawBack, aes(x=time, y=value, group=roi, color = roi)) +
 # ==============================================================================
 # calculates average mean intensity per frame per experiment
 table.signal_mean <- subset(table.signal, variable == "mean")
-table.signal_avg <- table.signal_mean %>% group_by(name, frame, time) %>% summarize(mean=mean(value), N = length(value), sd = sd(value), se = sd / sqrt(N))
+table.signal_avg <- table.signal_mean %>% group_by(name, frame, time) %>% dplyr::summarize(mean=mean(value), N = length(value), sd = sd(value), se = sd / sqrt(N))
 
 table.background_mean <- subset(table.background, variable == "mean")
-table.background_avg <- table.background_mean %>% group_by(name, frame, time) %>% summarize(mean=mean(value), N = length(value), sd = sd(value), se = sd / sqrt(N))
+table.background_avg <- table.background_mean %>% group_by(name, frame, time) %>% dplyr::summarize(mean=mean(value), N = length(value), sd = sd(value), se = sd / sqrt(N))
 
 # merge averages
 forBackgroundSubtraction <- merge(table.signal_avg, table.background_avg, by=c("name", "frame", "time"), suffixes=c(".sig",".back"))
@@ -158,14 +157,14 @@ peakNormalized <- peakNormalisation(surfaceNormalized)
 finalTable <- sortFrames(peakNormalized)
 
 # ==============================================================================
-finalTable_avg_sig <- finalTable %>% group_by(frame, time) %>% summarize(mean=mean(mean.sig), N = length(mean.sig), sd = sd(mean.sig), se = sd / sqrt(N))
+finalTable_avg_sig <- finalTable %>% group_by(frame, time) %>% dplyr::summarize(mean=mean(mean.sig), N = length(mean.sig), sd = sd(mean.sig), se = sd / sqrt(N))
 
 finalTable_avg_sig$high_corr <- with(finalTable_avg_sig, finalTable_avg_sig$mean + finalTable_avg_sig$se)
 finalTable_avg_sig$low_corr <- with(finalTable_avg_sig, finalTable_avg_sig$mean - finalTable_avg_sig$se)
 
 ggplot(finalTable_avg_sig, aes(x=time, y=mean)) +
   geom_line() + 
-  guides(colour=FALSE)  + 
+  guides(colour="none")  + 
   geom_ribbon(aes(ymin = low_corr, ymax = high_corr), alpha=.3) +
   # expand_limits(x = 0, y = 0.9) +
   scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
@@ -179,16 +178,15 @@ ggplot(finalTable_avg_sig, aes(x=time, y=mean)) +
         axis.line = element_line(colour = "black"))
 
 # processed data
-finalTable_avg_sig_corr <- finalTable %>% group_by(frame, time) %>% summarize(mean=mean(mean.corr), N = length(mean.corr), sd = sd(mean.corr), se = sd / sqrt(N))
+finalTable_avg_sig_corr <- finalTable %>% group_by(frame, time) %>% dplyr::summarize(mean=mean(mean.corr), N = length(mean.corr), sd = sd(mean.corr), se = sd / sqrt(N))
 
 finalTable_avg_sig_corr$high_corr <- with(finalTable_avg_sig_corr, finalTable_avg_sig_corr$mean + finalTable_avg_sig_corr$se)
 finalTable_avg_sig_corr$low_corr <- with(finalTable_avg_sig_corr, finalTable_avg_sig_corr$mean - finalTable_avg_sig_corr$se)
 
 ggplot(finalTable_avg_sig_corr, aes(x=time, y=mean)) +
   geom_line() + 
-  guides(colour=FALSE)  + 
+  guides(colour="none")  + 
   geom_ribbon(aes(ymin = low_corr, ymax = high_corr), alpha=.3) +
-  # expand_limits(x = 0, y = 0.9) +
   scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
   scale_y_continuous(limits = c(0, 700), breaks = seq(0, 700, by = 100)) +
   xlab("Time (s)") + 
@@ -200,16 +198,15 @@ ggplot(finalTable_avg_sig_corr, aes(x=time, y=mean)) +
         axis.line = element_line(colour = "black"))
 # ==============================================================================
 # processed data
-finalTable_avg_back <- finalTable %>% group_by(frame, time) %>% summarize(mean=mean(mean.back), N = length(mean.back), sd = sd(mean.back), se = sd / sqrt(N))
+finalTable_avg_back <- finalTable %>% group_by(frame, time) %>% dplyr::summarize(mean=mean(mean.back), N = length(mean.back), sd = sd(mean.back), se = sd / sqrt(N))
 
 finalTable_avg_back$high_corr <- with(finalTable_avg_back, finalTable_avg_back$mean + finalTable_avg_back$se)
 finalTable_avg_back$low_corr <- with(finalTable_avg_back, finalTable_avg_back$mean - finalTable_avg_back$se)
 
 ggplot(finalTable_avg_back, aes(x=time, y=mean)) +
   geom_line() + 
-  guides(colour=FALSE)  + 
+  guides(colour="none")  + 
   geom_ribbon(aes(ymin = low_corr, ymax = high_corr), alpha=.3) +
-  # expand_limits(x = 0, y = 0.9) +
   scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
   scale_y_continuous(limits = c(0, 700), breaks = seq(0, 700, by = 100)) +
   xlab("Time (s)") + 
@@ -221,16 +218,15 @@ ggplot(finalTable_avg_back, aes(x=time, y=mean)) +
         axis.line = element_line(colour = "black"))
 
 # ==============================================================================
-finalTable_avg_surf <- finalTable %>% group_by(frame, time) %>% summarize(mean=mean(surf_norm), N = length(surf_norm), sd = sd(surf_norm), se = sd / sqrt(N))
+finalTable_avg_surf <- finalTable %>% group_by(frame, time) %>% dplyr::summarize(mean=mean(surf_norm), N = length(surf_norm), sd = sd(surf_norm), se = sd / sqrt(N))
 
 finalTable_avg_surf$high_corr <- with(finalTable_avg_surf, finalTable_avg_surf$mean + finalTable_avg_surf$se)
 finalTable_avg_surf$low_corr <-  with(finalTable_avg_surf, finalTable_avg_surf$mean - finalTable_avg_surf$se)
 
 ggplot(finalTable_avg_surf, aes(x=time, y=mean)) +
   geom_line() + 
-  guides(colour=FALSE)  + 
+  guides(colour="none")  + 
   geom_ribbon(aes(ymin = low_corr, ymax = high_corr), alpha=.3) +
-  # expand_limits(x = 0, y = 0.9) +
   scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
   scale_y_continuous(limits = c(0.9, 1.7), breaks = seq(0.9, 1.7, by = 0.1)) +
   xlab("Time (s)") + 
@@ -243,23 +239,21 @@ ggplot(finalTable_avg_surf, aes(x=time, y=mean)) +
 
 # compute peak
 finalTable_avg_surf['name'] = 'dmso'
-peaks <- finalTable_avg_surf %>% group_by(name) %>%  summarise(max = max(mean))
+peaks <- finalTable_avg_surf %>% group_by(name) %>%  dplyr::summarize(max = max(mean))
 peaks
 
 # ------------------------------------------------------------------------------
 
-finalTable_avg_peak <- finalTable %>% group_by(frame, time) %>% summarize(mean=mean(peak_norm), N = length(peak_norm), sd = sd(peak_norm), se = sd / sqrt(N))
+finalTable_avg_peak <- finalTable %>% group_by(frame, time) %>% dplyr::summarize(mean=mean(peak_norm), N = length(peak_norm), sd = sd(peak_norm), se = sd / sqrt(N))
 
 finalTable_avg_peak$high_corr <- with(finalTable_avg_peak, finalTable_avg_peak$mean + finalTable_avg_peak$se)
 finalTable_avg_peak$low_corr <-  with(finalTable_avg_peak, finalTable_avg_peak$mean - finalTable_avg_peak$se)
 
 ggplot(finalTable_avg_peak, aes(x=time, y=mean)) +
   geom_line() + 
-  guides(colour=FALSE)  + 
+  guides(colour="none")  + 
   geom_ribbon(aes(ymin = low_corr, ymax = high_corr), alpha=.3) +
-  # expand_limits(x = 0, y = 0.9) +
   scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
-  #scale_y_continuous(limits = c(0.8, 2.6), breaks = seq(0.8, 2.6, by = 0.2)) +
   xlab("Time (s)") + 
   ylab("Norm. fluorescence intensity (A.U.)") + 
   ggtitle("Avg. Peak Norm") +
@@ -269,11 +263,12 @@ ggplot(finalTable_avg_peak, aes(x=time, y=mean)) +
         axis.line = element_line(colour = "black"))
 
 finalTable_avg_peak['name'] = 'dmso'
+
+
 finalTable_avg_peak <- finalTable_avg_peak %>% 
   rename(
     peak_norm = mean
   )
+
 head(finalTable_avg_peak)
 
-tau <- calcTau(finalTable_avg_peak, 14)
-tau
