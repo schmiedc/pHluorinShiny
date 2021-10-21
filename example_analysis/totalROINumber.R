@@ -51,7 +51,7 @@ frameStimulation = 5
 # load data from manual analysis
 manual <- read_csv(paste0(indir,"DataTable_ROIs.csv"))
 
-sumROI <- manual %>% group_by(treatment) %>% drop_na(NumberROI)  %>% summarise(sumManual = sum(NumberROI))
+sumROI <- manual %>% group_by(treatment) %>% drop_na(NumberROI)  %>% dplyr::summarize(sumManual = sum(NumberROI))
 
 # ============================================================================
 # load data from automatic analysis
@@ -60,7 +60,7 @@ auto <- auto %>% separate(name, sep ="_", c("day", "treatment", "number"), remov
 
 # filter traces where peak is in the stimulation range (10s - 20s)
 table.signal_mean_filter <- subset(auto, variable == "mean")
-peaks <- table.signal_mean_filter %>% group_by(name, roi) %>% summarise(value = max(value))
+peaks <- table.signal_mean_filter %>% group_by(name, roi) %>% dplyr::summarize(value = max(value))
 peaks_frame <- left_join(peaks, table.signal_mean_filter, by = c("name", "roi", "value"))
 
 filtered_peaks <- peaks_frame %>% filter(time < 20)
@@ -72,7 +72,7 @@ filtered_signal <- left_join(filtered_peaks_2, table.signal_mean_filter, by = c(
 singleData_area <- subset(filtered_signal, time == 0)
 
 # compute & plot number of ROIs
-roiNumber <- singleData_area %>% group_by(treatment) %>% summarize(sumAuto = n())
+roiNumber <- singleData_area %>% group_by(treatment) %>% dplyr::summarize(sumAuto = n())
 
 roiNumber <- inner_join(sumROI, roiNumber, by = "treatment")
 
