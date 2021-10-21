@@ -10,6 +10,8 @@ library(ggplot2)
 #
 #  DESCRIPTION: Analyse Manual vs Automatic from processed results
 #               Ctrl vs Treatment
+#
+#
 #              
 #       AUTHOR: Christopher Schmied, 
 #      CONTACT: schmied@dzne.de
@@ -20,9 +22,8 @@ library(ggplot2)
 #               13125 Berlin, Germany
 #
 #         BUGS:
-#        NOTES: 
+#        NOTES: Without the additional filter
 # DEPENDENCIES: ggplot2: install.packages("ggplot2")
-#               xlsx: install.packages("gxlsx")
 #               reshape2: install.packages("reshape2")
 #               plyr: install.packages("plyr")
 #               gridExtra: install.packages("gridExtra")
