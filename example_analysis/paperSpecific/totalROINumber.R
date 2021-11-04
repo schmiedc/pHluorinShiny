@@ -137,9 +137,13 @@ manulROI_number <- manual %>% group_by(treatment) %>% drop_na(NumberROI)  %>% dp
 
 roiNumber_new_2 <- inner_join(roiNumber_noFilter, manulROI_number, by = "treatment")
 roiNumber_new_2 
+
 roiNumber_new_2_longer <- pivot_longer(roiNumber_new_2, !treatment)
 
-ggplot(data=roiNumber_new_2_longer, aes(x=name, y=value)) +
+roiNumber_new_3 <- roiNumber_new_2_longer  %>% group_by(name) %>% dplyr::summarize(summary = sum(value))
+roiNumber_new_3
+
+ggplot(data=roiNumber_new_3, aes(x=name, y=summary)) +
   geom_bar(stat="identity") +
   scale_y_continuous(limits = c(0, 7000), breaks = seq(0, 7000, by = 1000)) +
   ylab("ROI Number") + 
