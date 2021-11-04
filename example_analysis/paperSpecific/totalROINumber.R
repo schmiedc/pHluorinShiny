@@ -136,7 +136,7 @@ roiNumber_newFilter <- filtered_singleTP %>% group_by(treatment) %>% dplyr::summ
 manulROI_number <- manual %>% group_by(treatment) %>% drop_na(NumberROI)  %>% dplyr::summarize(sumManual = sum(NumberROI))
 
 roiNumber_new_2 <- inner_join(roiNumber_noFilter, manulROI_number, by = "treatment")
-
+roiNumber_new_2 
 roiNumber_new_2_longer <- pivot_longer(roiNumber_new_2, !treatment)
 
 ggplot(data=roiNumber_new_2_longer, aes(x=name, y=value)) +
