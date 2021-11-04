@@ -138,7 +138,7 @@ ggsave(plot = raw_signal_grids_sd_reject,
        units = "mm") 
 
 # ------------------------------------------------------------------------------
-# filter traces where peak is in the stimulation range (20s)
+# filter traces where peak is in the stimulation range
 # ------------------------------------------------------------------------------
 # compute peak 
 peaks <- filtered_signal_sd %>% group_by(name, roi) %>% dplyr::summarize(value = max(value))
