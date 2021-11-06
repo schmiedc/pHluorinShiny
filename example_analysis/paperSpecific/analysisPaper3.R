@@ -38,7 +38,8 @@ library("xlsx")
 # where to get the files
 indir = "/data1/FMP_Docs/Projects/Publication_SynActJ/DataAnalysis/pHluorin_data/revised_output/"
 
-outputDirectory = "/data1/FMP_Docs/Projects/Publication_SynActJ/DataAnalysis/pHluorin_data/Routput/"
+
+outputDirectory = "/data1/FMP_Docs/Projects/Publication_SynActJ/DataAnalysis/pHluorin_data/Routput1/"
 
 resultname = "Test"
 
@@ -73,11 +74,14 @@ table.background <- table.background %>% separate(name,
                                                   sep ="_", c("day", "treatment", "number"), 
                                                   remove=FALSE)
 
+
+
 # ------------------------------------------------------------------------------
 # computes standard deviation of background overall all traces
 table.background_sd <- subset(table.background, variable == "mean")
 
-table.background_sd <- table.background_sd %>% group_by(name, day, treatment, number, roi) %>% dplyr::summarize(sd = sd(value))
+table.background_sd <- table.background_sd %>% group_by(name, day, treatment, number) %>% dplyr::summarize(sd = sd(value))
+
 table.background_sd$sd_mult <- table.background_sd$sd * sd_multiplicator
 
 # ------------------------------------------------------------------------------
@@ -106,7 +110,7 @@ table.signal_mean_before_after <- left_join(table.signal_mean_before_avg, table.
 table.signal_mean_before_after$delta <- table.signal_mean_before_after$after - table.signal_mean_before_after$before
 
 # ------------------------------------------------------------------------------
-table.signal_mean_before_after <- left_join(table.signal_mean_before_after, table.background_sd, by = c("name", "roi", "day", "treatment", "number"))
+table.signal_mean_before_after <- left_join(table.signal_mean_before_after, table.background_sd, by = c("name", "day", "treatment", "number"))
 
 filtered_for_sd <- table.signal_mean_before_after %>% filter(delta > sd_mult)
 
@@ -115,12 +119,14 @@ filtered_sd <- filtered_for_sd %>% select(c(-before, -after, -delta, -sd, -sd_mu
 filtered_signal_sd <- left_join(filtered_sd, table.signal_mean_filter, by = c("name", "roi", "day", "treatment", "number"))
 
 raw_signal_sd <- plotRawMean(filtered_signal_sd)
+
 raw_signal_grids_sd <-  marrangeGrob(raw_signal_sd, ncol = 3, nrow = 4, top = "Raw grey values of filtered traces")
 ggsave(plot = raw_signal_grids_sd,
        file=file.path(outputDirectory, paste0(resultname, "_keep_sd", sd_multiplicator, ".pdf") ), 
        width = 297, 
        height = 210, 
        units = "mm") 
+
 # ------------------------------------------------------------------------------
 # save rejected
 filtered_for_sd_reject <- table.signal_mean_before_after %>% filter(delta < sd_mult)

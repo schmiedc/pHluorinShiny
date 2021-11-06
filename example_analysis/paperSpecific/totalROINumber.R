@@ -33,7 +33,7 @@ source("plotData.R")
 indir = "/data1/FMP_Docs/Projects/Publication_SynActJ/pHluorinJ_Data/RevisedAnalysis/"
 
 # where to save the data
-outdir = "/data1/FMP_Docs/Projects/Publication_SynActJ/pHluorinJ_Data/ComparisonROI_Manual_Auto/"
+outdir = "/data1/FMP_Docs/Projects/Publication_SynActJ/pHluorinJ_Data/ComparisonROI_Manual_Auto2/"
 
 # ============================================================================
 resultname = "Test"
@@ -84,7 +84,7 @@ table.signal_mean_filter <- subset(table.signal, variable == "mean")
 # computes standard deviation of background overall all traces
 table.background_sd <- subset(table.background, variable == "mean")
 
-table.background_sd <- table.background_sd %>% group_by(name, day, treatment, number, roi) %>% dplyr::summarize(sd = sd(value))
+table.background_sd <- table.background_sd %>% group_by(name, day, treatment, number) %>% dplyr::summarize(sd = sd(value))
 table.background_sd$sd_mult <- table.background_sd$sd * sd_multiplicator
 
 # ------------------------------------------------------------------------------
@@ -101,7 +101,7 @@ table.signal_mean_before_after <- left_join(table.signal_mean_before_avg, table.
 table.signal_mean_before_after$delta <- table.signal_mean_before_after$after - table.signal_mean_before_after$before
 
 # ------------------------------------------------------------------------------
-table.signal_mean_before_after <- left_join(table.signal_mean_before_after, table.background_sd, by = c("name", "roi", "day", "treatment", "number"))
+table.signal_mean_before_after <- left_join(table.signal_mean_before_after, table.background_sd, by = c("name", "day", "treatment", "number"))
 
 filtered_for_sd <- table.signal_mean_before_after %>% filter(delta > sd_mult)
 
@@ -164,3 +164,4 @@ filtered_singleTP_new$name <- paste0(filtered_singleTP_new$day, "_", filtered_si
 unfiltered_singleTP_new$kept <- unfiltered_singleTP_new$name %in% filtered_singleTP_new$name
 
 write.csv(unfiltered_singleTP_new, paste0(outdir, "filteredROI.csv"))
+
