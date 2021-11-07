@@ -223,8 +223,6 @@ write.xlsx(save_table_wider, file.path(outputDirectory, paste0(resultname, "_tim
 # ------------------------------------------------------------------------------
 finalTable_avg_surf <- finalTable %>% group_by(treatment, frame, time) %>% dplyr::summarize(mean=mean(surf_norm), N = length(surf_norm), sd = sd(surf_norm), se = sd / sqrt(N))
 
-head(finalTable_avg_surf)
-
 finalTable_avg_surf$high_corr <- with(finalTable_avg_surf, finalTable_avg_surf$mean + finalTable_avg_surf$se)
 finalTable_avg_surf$low_corr <-  with(finalTable_avg_surf, finalTable_avg_surf$mean - finalTable_avg_surf$se)
 
@@ -274,8 +272,12 @@ peaks <- finalTable %>% group_by(name) %>% dplyr::summarize(max = max(surf_norm)
 peaks$deltaMax <- peaks$max - 1
 peaks <- peaks %>% separate(name, sep ="_", c("day", "treatment"), remove=FALSE)
 
-res_peaks <- t.test(deltaMax ~ treatment, data = peaks, paired = TRUE)
+res_peaks <- t.test(deltaMax ~ treatment, data = peaks, paired  then. = TRUE)
+res_peaks
+
 auto_peak_sd <- peaks %>% group_by(treatment) %>% dplyr::summarize(mean=mean(deltaMax), N = length(deltaMax), sd = sd(deltaMax), se = sd / sqrt(N))
+auto_peak_sd 
+
 
 # plot peak difference
 ggplot(data=peaks, aes(x=treatment, y=deltaMax)) +
@@ -347,6 +349,7 @@ peaks_manual$deltaMax <- peaks_manual$max - 1
 
 manual_peak_sd <- peaks_manual %>% group_by(treatment) %>% dplyr::summarize(mean=mean(deltaMax), N = length(deltaMax), sd = sd(deltaMax), se = sd / sqrt(N))
 res_peaks_manual <- t.test(deltaMax ~ treatment, data = peaks_manual, paired = TRUE)
+res_peaks_manual
 
 # plot peak difference
 ggplot(data=peaks_manual, aes(x=treatment, y=deltaMax)) +
