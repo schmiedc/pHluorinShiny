@@ -272,7 +272,7 @@ peaks <- finalTable %>% group_by(name) %>% dplyr::summarize(max = max(surf_norm)
 peaks$deltaMax <- peaks$max - 1
 peaks <- peaks %>% separate(name, sep ="_", c("day", "treatment"), remove=FALSE)
 
-res_peaks <- t.test(deltaMax ~ treatment, data = peaks, paired  then. = TRUE)
+res_peaks <- t.test(deltaMax ~ treatment, data = peaks, paired= TRUE)
 res_peaks
 
 auto_peak_sd <- peaks %>% group_by(treatment) %>% dplyr::summarize(mean=mean(deltaMax), N = length(deltaMax), sd = sd(deltaMax), se = sd / sqrt(N))
