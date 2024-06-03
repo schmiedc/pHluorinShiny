@@ -2,6 +2,7 @@ setwd("/home/schmiedc/FMP_Docs/Repositories/plugins_FMP/SynActJ_Shiny")
 library(gridExtra)
 library(tidyverse)
 library(zoo) # needed for smoothing the traces
+library(signal) # for Savitzky-Golay filtering
 source("dataProcessing.R")
 source("saveData.R")
 source("plotData.R")
@@ -29,7 +30,7 @@ source("plotData.R")
 #               broom: install.packages("broom")
 #               zoo: install.packages("zoo")
 #
-#      VERSION: 1.0.0
+#      VERSION: 1.0.1
 #      CREATED: 2024
 #     REVISION:
 #
@@ -96,13 +97,17 @@ after_stim_range = 3
 # stimulation threshold (A.U.)
 stim_threshold = 2
 
+# filter setting to extract filtered features
+sg_polyorder = 3 # must be smaller than sg_filter_length
+sg_filter_length = 9 # must a an odd positive integer
+
 # ------------------------------------------------------------------------------
 # computes mean before stimulation
 mean_before_stim <- function(data_frame, stim_frame, range){
   
   before_stim_range_lower = stim_frame - ( range - 1 )
   before_stim_range_upper = stim_frame
-  return(data_frame %>% filter(frame %in% (before_stim_range_lower:before_stim_range_upper)) %>% summarise( mean = mean(value)))
+  return(data_frame %>% dplyr::filter(frame %in% (before_stim_range_lower:before_stim_range_upper)) %>% summarise( mean = mean(value)))
   
 }
 
@@ -111,7 +116,7 @@ mean_after_stim <- function(data_frame, stim_frame, range){
   
   after_stim_range_lower = stim_frame + 2
   after_stim_range_upper = after_stim_range_lower + ( range - 1 )
-  return(subset_name_roi %>% filter(frame %in% (after_stim_range_lower:after_stim_range_upper)) %>% summarise( mean = mean(value)))
+  return(data_frame %>% dplyr::filter(frame %in% (after_stim_range_lower:after_stim_range_upper)) %>% summarise( mean = mean(value)))
   
 }
 
@@ -123,6 +128,10 @@ before_list <- list()
 after_list <- list()
 difference_list <- list()
 responding_stim_list <- list()
+before_list_filter <- list()
+after_list_filter <- list()
+difference_list_filter <- list()
+responding_stim_list_filter <- list()
 
 # Get unique experiment names
 nameTable <- unique(table.signal.mean$name)
@@ -142,6 +151,10 @@ for (experimentName in nameTable) {
     # Subset data for the current ROI within the current experiment
     subset_name_roi <- subset(subset_name, roi == roiName)
     
+    # apply Savitzky-Golay filtering
+    subset_name_roi_filter <- data.frame(subset_name_roi)
+    subset_name_roi_filter$value <- sgolayfilt(subset_name_roi$value, p=sg_polyorder, n=sg_filter_length)
+    
     # Loop over each stimulation frame
     for (stimNumber in stimulation_list_filtered) {
       
@@ -149,6 +162,11 @@ for (experimentName in nameTable) {
       mean_after_stim_value <- mean_after_stim(subset_name_roi, stimNumber, after_stim_range)
       mean_before_stim_value <- mean_before_stim(subset_name_roi, stimNumber, before_stim_range)
       difference_stimulation <- mean_after_stim_value - mean_before_stim_value 
+      
+      # get features from filtered trace
+      mean_after_stim_value_filter <- mean_after_stim(subset_name_roi_filter, stimNumber, after_stim_range)
+      mean_before_stim_value_filter <- mean_before_stim(subset_name_roi_filter, stimNumber, before_stim_range)
+      difference_stimulation_filter <- mean_after_stim_value_filter - mean_before_stim_value_filter
       
       stim_response = NULL
       
@@ -162,6 +180,18 @@ for (experimentName in nameTable) {
         
       }
       
+      stim_response_filter = NULL
+      
+      if (difference_stimulation_filter >= stim_threshold) {
+        
+        stim_response_filter = TRUE
+        
+      } else {
+        
+        stim_response_filter = FALSE
+        
+      }
+      
       experiment_list[[list_iterator]] <- experimentName
       roi_name_list[[list_iterator]] <- roiName
       stimulation_name_list[[list_iterator]] <- stimNumber
@@ -169,6 +199,11 @@ for (experimentName in nameTable) {
       after_list[[list_iterator]] <- mean_after_stim_value
       difference_list[[list_iterator]] <- difference_stimulation
       responding_stim_list[[list_iterator]] <- stim_response
+      
+      before_list_filter[[list_iterator]] <- mean_before_stim_value_filter
+      after_list_filter[[list_iterator]] <- mean_after_stim_value_filter
+      difference_list_filter[[list_iterator]] <- difference_stimulation_filter
+      responding_stim_list_filter[[list_iterator]] <- stim_response_filter
       
       list_iterator = list_iterator  + 1
       
@@ -186,7 +221,11 @@ feature_data <- data.frame(
   before_mean = unlist(before_list),
   after_mean = unlist(after_list),
   difference = unlist(difference_list),
-  stim_response = unlist(responding_stim_list)
+  stim_response = unlist(responding_stim_list),
+  before_mean_filter = unlist(before_list_filter),
+  after_mean_filter = unlist(after_list_filter),
+  difference_filter = unlist(difference_list_filter),
+  stim_response_filter = unlist(responding_stim_list_filter)
 )
 
 feature_data$stim_frame_char <- as.character(feature_data$stim_frame)
@@ -196,11 +235,16 @@ feature_data$stim_frame_char <- as.character(feature_data$stim_frame)
 
 # user defined settings
 # the stim frames used to extract the average after stimulation values
+# Permitted settings: 5,35,65,95,125,155,185,215,245,275,335
 line_start = 65
 line_end = 275
 
 # offset to adjust threshold line
 offset <- 3
+
+# Stimulation filter setting
+# filter based on filtered values
+use_filtered_traces = TRUE
 # ------------------------------------------------------------------------------
 # Function to calculate y values of a line passing through two points
 calculate_slope_intercept <- function(x1, y1, x2, y2) {
@@ -259,8 +303,8 @@ for (experimentName in nameTable) {
     feature_subset_name_roi <- subset(feature_subset_name, roi == roiName)
     
     # Define start and end points
-    start_value <- feature_subset_name_roi %>% filter(stim_frame == line_start) %>% pull(after_mean)
-    end_value <- feature_subset_name_roi %>% filter(stim_frame == line_end) %>% pull(after_mean)
+    start_value <- feature_subset_name_roi %>% dplyr::filter(stim_frame == line_start) %>% pull(after_mean)
+    end_value <- feature_subset_name_roi %>% dplyr::filter(stim_frame == line_end) %>% pull(after_mean)
     start_value <- ceiling(start_value + offset)
     end_value <- ceiling(end_value + offset)
     start_value 
@@ -274,7 +318,7 @@ for (experimentName in nameTable) {
     subset_name_roi$threshold_line <- calculate_y_values(line_params$slope, line_params$intercept, x_values)
     
     # get only the window for determining traces to trash
-    subset_name_roi_window <- subset_name_roi %>% filter(frame >= line_start, frame <= line_end)
+    subset_name_roi_window <- subset_name_roi %>% dplyr::filter(frame >= line_start, frame <= line_end)
     
     # if smooth line goes over threshold line the trace will be discarded
     slope_positive = FALSE
@@ -374,8 +418,8 @@ head(feature_data) # info about features plus responding stimulations
 head(first_feature_filter) # information about filter
 
 # filter traces and features
-first_feature_filter_removed <- filter(first_feature_filter, !slope_positive)
-first_feature_filter_removed2 <- filter(first_feature_filter_removed , !stimulation_exceeds_threshold)
+first_feature_filter_removed <- dplyr::filter(first_feature_filter, !slope_positive)
+first_feature_filter_removed2 <- dplyr::filter(first_feature_filter_removed , !stimulation_exceeds_threshold)
 
 table.signal.mean_filtered <- table.signal.mean %>% semi_join(first_feature_filter_removed2, by = c("name", "roi"))
 feature_data_filtered <- feature_data %>% semi_join(first_feature_filter_removed2, by = c("name", "roi"))
@@ -396,33 +440,71 @@ for (nameName in nameTable) {
     roi_subset <- subset(name_subset, roi == roiNumber)
     feature_data_filtered_subset_roi <- subset(feature_data_filtered_subset, roi == roiNumber)
 
-    plot.list[[roiNumber]]  <- ggplot() +
+    if (use_filtered_traces) {
       
-      geom_line(data = roi_subset, aes(x=frame, y=value), size = 0.2) +
+      plot.list[[roiNumber]]  <- ggplot() +
+        
+        geom_line(data = roi_subset, aes(x=frame, y=value), size = 0.2) +
+        xlab("Frame") + 
+        ylab("Fluorescence (a.u.)") +
+        
+        geom_rect(
+          aes(xmin = stim_frame, xmax = stim_frame + 30, fill =  stim_response_filter), 
+          ymin = -Inf, 
+          ymax = Inf, 
+          alpha = 0.2, 
+          data = feature_data_filtered_subset_roi,
+          show.legend = FALSE) +
+        
+        # should set the color values correctly
+        scale_fill_manual(values = c("TRUE" = "green", "FALSE" = "red")) +
+        
+        geom_vline(
+          aes(xintercept = as.numeric(stim_frame_char)), 
+          data = feature_data_filtered_subset_roi,
+          linetype = "dotted",
+          size = 0.2
+        ) + 
+        
+        scale_color_manual(values = c("TRUE" = "green", "FALSE" = "red")) +
+        
+        theme_bw(base_size = 5) +
+        ggtitle(roiNumber)
       
-      xlab("Frame") + 
-      ylab("Fluorescence (a.u.)") +
+    } else {
       
-      # 
-      geom_rect(
-        aes(xmin = stim_frame, xmax = stim_frame + 30, fill = stim_response), 
-        ymin = -Inf, 
-        ymax = Inf, 
-        alpha = 0.2, 
-        data = feature_data_filtered_subset_roi,
-        show.legend = FALSE
-      ) + 
+      plot.list[[roiNumber]]  <- ggplot() +
+        
+        geom_line(data = roi_subset, aes(x=frame, y=value), size = 0.2) +
+        xlab("Frame") + 
+        ylab("Fluorescence (a.u.)") +
+        
+        geom_rect(
+          aes(xmin = stim_frame, xmax = stim_frame + 30, fill =  stim_response), 
+          ymin = -Inf, 
+          ymax = Inf, 
+          alpha = 0.2, 
+          data = feature_data_filtered_subset_roi,
+          show.legend = FALSE) +
+        
+        # should set the color values correctly
+        scale_fill_manual(values = c("TRUE" = "green", "FALSE" = "red")) +
+        
+        geom_vline(
+          aes(xintercept = as.numeric(stim_frame_char)), 
+          data = feature_data_filtered_subset_roi,
+          linetype = "dotted",
+          size = 0.2
+        ) + 
+        
+        scale_color_manual(values = c("TRUE" = "green", "FALSE" = "red")) +
+        
+        theme_bw(base_size = 5) +
+        ggtitle(roiNumber)
       
-      geom_vline(
-        aes(xintercept = as.numeric(stim_frame_char), color = stim_response), 
-        data = feature_data_filtered_subset_roi,
-        #colour = "blue", 
-        linetype = "dotted",
-        size = 0.2
-      ) + 
+    }
       
-      theme_bw(base_size = 5) +
-      ggtitle(roiNumber)
+    
     
   }
 
@@ -442,6 +524,67 @@ for (nameName in nameTable) {
   plot.list <- NULL
   
 }
+
+# ==============================================================================
+# Data detrending
+# Savitzky-Golay filter of traces
+# https://search.r-project.org/CRAN/refmans/gsignal/html/sgolayfilt.html
+# TODO: apply over dataset
+lots_of_trash = "2312127_1_iNWT0311_VGLUTpHlenti1uL_100nMJFX650_1.3mMCa_10x4AP_t5x30f_200AP_t335_500msframe_2_MMImages.ome"
+good_traces = "2312127_1_iNWT0311_VGLUTpHlenti1uL_HaloFBPWT1uL_100nMJFX650_1.3mMCa_10x4AP_t5x30f_200AP_t335_500msframe_3_MMImages.ome"
+
+signal_subset <- subset(table.signal.mean, name == good_traces)
+signal_subset_roi <- subset(signal_subset, roi == '010')
+
+feature_subset <- subset(feature_data, name == good_traces)
+feature_subset_roi <- subset(feature_subset, roi == '010')
+
+# Subset trace for further correction
+# Permitted settings: 5,35,65,95,125,155,185,215,245,275,335
+start_correction = 65 # average few frames before  to get baseline
+end_correction = 275
+range_surface_correction = 3 # range of frames to use for surface normalization
+
+# Filter for detrending data
+sg_polyorder_detrend = 3 # must be smaller than sg_filter_length
+sg_filter_length_detrend = 51 # must a an odd positive integer
+
+# Apply sgolay filter
+signal_subset_roi$sg_filtered <- sgolayfilt(signal_subset_roi$value, p=3, n=51)
+
+# subset the trace to apply the correction
+signal_subset_roi_correction <- signal_subset_roi %>% dplyr::filter(frame %in% (start_correction:end_correction))
+
+#  apply correction
+signal_subset_roi_correction$value_corrected <- signal_subset_roi_correction$value - signal_subset_roi_correction$sg_filtered
+
+mean_before_stim_correction <- function(data_frame, stim_frame, range){
+  
+  before_stim_range_lower = stim_frame - ( range - 1 )
+  before_stim_range_upper = stim_frame
+  return(data_frame %>% dplyr::filter(frame %in% (before_stim_range_lower:before_stim_range_upper)) %>% summarise( mean = mean(value_corrected)))
+  
+}
+
+# compute baseline before first stimulation 
+baseline_mean <- mean_before_stim_correction(signal_subset_roi_correction, start_correction, range_surface_correction)
+
+# transforms the trace such that it starts from 0
+signal_subset_roi_correction$value_corrected_norm <- signal_subset_roi_correction$value_corrected - baseline_mean$mean
+
+signal_subset_roi_correction
+
+ggplot() + 
+  # geom_line(data = signal_subset_roi_correction, aes(x=frame, y=value), size = 0.2) +
+  # geom_line(data = signal_subset_roi_correction, aes(x=frame, y=sg_filtered, color='Sgolay'), size = 0.2) +
+  # geom_line(data = signal_subset_roi_correction, aes(x=frame, y=value_corrected, color='Corrected'), size = 0.2)
+  geom_line(data = signal_subset_roi_correction, aes(x=frame, y=value_corrected_norm, color='Corrected Normalized'), size = 0.2)
+
+# ==============================================================================
+# TODO: extract tracelets
+# TODO: Merge and visualize tracelets per stim frame over experiment
+# TODO: Merge and visualize tracelets over experiment
+# TODO: Think about further analysis
 
 # ==============================================================================
 # Plot extracted features
