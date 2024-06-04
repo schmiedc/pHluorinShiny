@@ -307,8 +307,6 @@ for (experimentName in nameTable) {
     end_value <- feature_subset_name_roi %>% dplyr::filter(stim_frame == line_end) %>% pull(after_mean)
     start_value <- ceiling(start_value + offset)
     end_value <- ceiling(end_value + offset)
-    start_value 
-    end_value
     
     line_params <- calculate_slope_intercept(line_start, start_value, line_end, end_value)
     
@@ -413,10 +411,6 @@ first_feature_filter <- data.frame(
 sum(first_feature_filter$stimulation_exceeds_threshold, na.rm = TRUE)
 
 # ==============================================================================
-head(table.signal.mean) # original trace
-head(feature_data) # info about features plus responding stimulations
-head(first_feature_filter) # information about filter
-
 # filter traces and features
 first_feature_filter_removed <- dplyr::filter(first_feature_filter, !slope_positive)
 first_feature_filter_removed2 <- dplyr::filter(first_feature_filter_removed , !stimulation_exceeds_threshold)
@@ -424,6 +418,8 @@ first_feature_filter_removed2 <- dplyr::filter(first_feature_filter_removed , !s
 table.signal.mean_filtered <- table.signal.mean %>% semi_join(first_feature_filter_removed2, by = c("name", "roi"))
 feature_data_filtered <- feature_data %>% semi_join(first_feature_filter_removed2, by = c("name", "roi"))
 
+# ==============================================================================
+# Visualize the result of the stimulation filter
 nameTable = unique(table.signal.mean_filtered$name)
 
 for (nameName in nameTable) {
@@ -529,15 +525,6 @@ for (nameName in nameTable) {
 # Data detrending
 # Savitzky-Golay filter of traces
 # https://search.r-project.org/CRAN/refmans/gsignal/html/sgolayfilt.html
-# TODO: apply over dataset
-lots_of_trash = "2312127_1_iNWT0311_VGLUTpHlenti1uL_100nMJFX650_1.3mMCa_10x4AP_t5x30f_200AP_t335_500msframe_2_MMImages.ome"
-good_traces = "2312127_1_iNWT0311_VGLUTpHlenti1uL_HaloFBPWT1uL_100nMJFX650_1.3mMCa_10x4AP_t5x30f_200AP_t335_500msframe_3_MMImages.ome"
-
-signal_subset <- subset(table.signal.mean, name == good_traces)
-signal_subset_roi <- subset(signal_subset, roi == '010')
-
-feature_subset <- subset(feature_data, name == good_traces)
-feature_subset_roi <- subset(feature_subset, roi == '010')
 
 # Subset trace for further correction
 # Permitted settings: 5,35,65,95,125,155,185,215,245,275,335
@@ -549,15 +536,7 @@ range_surface_correction = 3 # range of frames to use for surface normalization
 sg_polyorder_detrend = 3 # must be smaller than sg_filter_length
 sg_filter_length_detrend = 51 # must a an odd positive integer
 
-# Apply sgolay filter
-signal_subset_roi$sg_filtered <- sgolayfilt(signal_subset_roi$value, p=3, n=51)
-
-# subset the trace to apply the correction
-signal_subset_roi_correction <- signal_subset_roi %>% dplyr::filter(frame %in% (start_correction:end_correction))
-
-#  apply correction
-signal_subset_roi_correction$value_corrected <- signal_subset_roi_correction$value - signal_subset_roi_correction$sg_filtered
-
+# function to compute the mean before a specific frame given over a range given
 mean_before_stim_correction <- function(data_frame, stim_frame, range){
   
   before_stim_range_lower = stim_frame - ( range - 1 )
@@ -566,21 +545,112 @@ mean_before_stim_correction <- function(data_frame, stim_frame, range){
   
 }
 
-# compute baseline before first stimulation 
-baseline_mean <- mean_before_stim_correction(signal_subset_roi_correction, start_correction, range_surface_correction)
+# Initialize lists to store data
+processed_traces <- list()
 
-# transforms the trace such that it starts from 0
-signal_subset_roi_correction$value_corrected_norm <- signal_subset_roi_correction$value_corrected - baseline_mean$mean
+list_iterator = 1
 
-signal_subset_roi_correction
+# Loop over filtered traces to process them
+nameTable = unique(table.signal.mean_filtered$name)
 
-ggplot() + 
-  # geom_line(data = signal_subset_roi_correction, aes(x=frame, y=value), size = 0.2) +
-  # geom_line(data = signal_subset_roi_correction, aes(x=frame, y=sg_filtered, color='Sgolay'), size = 0.2) +
-  # geom_line(data = signal_subset_roi_correction, aes(x=frame, y=value_corrected, color='Corrected'), size = 0.2)
-  geom_line(data = signal_subset_roi_correction, aes(x=frame, y=value_corrected_norm, color='Corrected Normalized'), size = 0.2)
+for (nameName in nameTable) {
+  
+  plot.list <- list()
+  
+  table.signal.mean_filtered_subset <- subset(table.signal.mean_filtered, name == nameName )
+  
+  roiTable = unique(table.signal.mean_filtered_subset$roi)
+  
+  for (roiNumber in roiTable) {
+    
+    table.signal.mean_filtered_subset_roi <- subset(table.signal.mean_filtered_subset, roi == roiNumber)
+
+    # Apply sgolay filter
+    table.signal.mean_filtered_subset_roi$sg_filtered <- sgolayfilt(table.signal.mean_filtered_subset_roi$value, p=3, n=51)
+    
+    # subset the trace to apply the correction
+    table.signal.mean_filtered_subset_roi_correction <- table.signal.mean_filtered_subset_roi %>% dplyr::filter(frame %in% (start_correction:end_correction))
+    
+    #  apply correction
+    table.signal.mean_filtered_subset_roi_correction$value_corrected <- table.signal.mean_filtered_subset_roi_correction$value - table.signal.mean_filtered_subset_roi_correction$sg_filtered
+
+    # compute baseline before first stimulation 
+    baseline_mean <- mean_before_stim_correction(table.signal.mean_filtered_subset_roi_correction, start_correction, range_surface_correction)
+    
+    # transforms the trace such that it starts from 0
+    table.signal.mean_filtered_subset_roi_correction$value_corrected_norm <- table.signal.mean_filtered_subset_roi_correction$value_corrected - baseline_mean$mean
+  
+    # collect processed dataframes
+    processed_traces[[list_iterator]] <- table.signal.mean_filtered_subset_roi_correction
+    
+    plot.list[[roiNumber]]  <- ggplot() +
+      
+      geom_line(data = table.signal.mean_filtered_subset_roi_correction, aes(x=frame, y=value_corrected_norm), size = 0.2) +
+      xlab("Frame") + 
+      ylab("Corrected Fluorescence (a.u.)")
+    
+    list_iterator = list_iterator + 1
+    
+  }
+  
+  
+  test_plots <- marrangeGrob(plot.list, 
+                             ncol = 3, 
+                             nrow = 4, 
+                             top = "Correction results",
+                             layout_matrix = matrix(1:12, 4, 3, TRUE) )
+  
+  
+  ggsave(plot = test_plots,
+         file=paste0(outdir, .Platform$file.sep, "Corr_", nameName, ".pdf"), 
+         width = 297, 
+         height = 210, 
+         units = "mm") 
+  
+  plot.list <- NULL
+  
+}
+
+# collected the processed data
+processed_traces_collected <- do.call(rbind, processed_traces)
+
+# NOTE: Correction to 0 does not work well if the baseline of the first frame is variable
+# Maybe this correction needs to be done differently. 
+# Will lead to issues when averaging the tracelets
 
 # ==============================================================================
+# Function to assign tracelet_ID based on stimulation_list
+assign_tracelet_ID <- function(frame, stimulation_list) {
+  
+  tracelet_ID <- NA
+  
+  for (i in seq_along(stimulation_list)) {
+    
+    if (frame >= stimulation_list[i] && (i == length(stimulation_list) || frame < stimulation_list[i + 1])) {
+      
+      tracelet_ID <- stimulation_list[i]
+      
+      break
+      
+    }
+    
+  }
+  
+  return(tracelet_ID)
+  
+}
+
+# The stimulation list I want to walk through
+stimulation_list_subset <- Filter(function(x) x >= start_correction && x <= end_correction, stimulation_list_filtered)
+
+# Apply the function to create a new column for BlockID
+processed_traces_collected$tracelet_ID <-as.character(sapply(processed_traces_collected$frame, assign_tracelet_ID, stimulation_list = stimulation_list_subset))
+
+# remove stimulation that are not responding based on stim_response_filter
+feature_data_filtered_stim_remove <- dplyr::filter(feature_data_filtered, stim_response_filter)
+feature_data_filtered_stim_remove <- dplyr::rename(feature_data_filtered_stim_remove, c("tracelet_ID" = "stim_frame_char" ))
+processed_traces_collected_filtered <- processed_traces_collected %>% semi_join(feature_data_filtered_stim_remove , by = c("name", "roi", "tracelet_ID"))
+
 # TODO: extract tracelets
 # TODO: Merge and visualize tracelets per stim frame over experiment
 # TODO: Merge and visualize tracelets over experiment
@@ -654,6 +724,8 @@ good_traces = "2312127_1_iNWT0311_VGLUTpHlenti1uL_HaloFBPWT1uL_100nMJFX650_1.3mM
 
 signal_subset <- subset(table.signal.mean, name == good_traces)
 signal_subset_roi <- subset(signal_subset, roi == '010')
+
+
 
 feature_subset <- subset(feature_data, name == good_traces)
 feature_subset_roi <- subset(feature_subset, roi == '010')
