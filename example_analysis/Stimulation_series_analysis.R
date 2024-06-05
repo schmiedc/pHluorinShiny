@@ -418,6 +418,7 @@ first_feature_filter_removed2 <- dplyr::filter(first_feature_filter_removed , !s
 table.signal.mean_filtered <- table.signal.mean %>% semi_join(first_feature_filter_removed2, by = c("name", "roi"))
 feature_data_filtered <- feature_data %>% semi_join(first_feature_filter_removed2, by = c("name", "roi"))
 
+
 # ==============================================================================
 # Visualize the result of the stimulation filter
 nameTable = unique(table.signal.mean_filtered$name)
@@ -529,7 +530,7 @@ for (nameName in nameTable) {
 # Subset trace for further correction
 # Permitted settings: 5,35,65,95,125,155,185,215,245,275,335
 start_correction = 65 # average few frames before  to get baseline
-end_correction = 275
+end_correction = 335 
 range_surface_correction = 3 # range of frames to use for surface normalization
 
 # Filter for detrending data
@@ -651,11 +652,98 @@ feature_data_filtered_stim_remove <- dplyr::filter(feature_data_filtered, stim_r
 feature_data_filtered_stim_remove <- dplyr::rename(feature_data_filtered_stim_remove, c("tracelet_ID" = "stim_frame_char" ))
 processed_traces_collected_filtered <- processed_traces_collected %>% semi_join(feature_data_filtered_stim_remove , by = c("name", "roi", "tracelet_ID"))
 
-# TODO: extract tracelets
-# TODO: Merge and visualize tracelets per stim frame over experiment
-# TODO: Merge and visualize tracelets over experiment
-# TODO: Think about further analysis
+average_tracelets <- processed_traces_collected_filtered %>%
+  dplyr::group_by(name, frame, roi, tracelet_ID) %>%
+  dplyr::summarise(mean_value = mean(value_corrected_norm, na.rm = TRUE))
 
+# clip of the last stimulation as this does not contain any data
+average_tracelets <- average_tracelets[average_tracelets$tracelet_ID != end_correction,]
+
+# Visualize tracelets
+average_tracelets_nameTable = unique(average_tracelets$name)
+
+for (nameName in average_tracelets_nameTable) {
+  
+  plot.list <- list()
+  
+  name_subset <- subset(average_tracelets, name == nameName )
+  
+  roiTable = unique(name_subset$roi)
+  
+  plotNumber = 1
+  
+  for (roiNumber in roiTable) {
+    
+    roi_subset <- subset(name_subset, roi == roiNumber)
+
+    tracelet_ID_table = unique(roi_subset$tracelet_ID)
+
+    for (tracletNumber in tracelet_ID_table) {
+      
+      traclet_subset <- subset(roi_subset, tracelet_ID == tracletNumber)
+
+      plot.list[[plotNumber]]  <- ggplot() +
+        geom_line(data = traclet_subset, aes(x=frame, y=mean_value), size = 0.2) +
+        xlab("Frame") + 
+        ylab("Fluorescence (a.u.)") +
+        theme_bw(base_size = 5) +
+        ggtitle( paste0("Avg. tracelet for ROI: ", roiNumber, " Tracelet #: ",  tracletNumber) )
+      
+      plotNumber = plotNumber + 1
+      
+    }
+
+  }
+  
+  test_plots <- marrangeGrob(plot.list, 
+                             ncol = 6, 
+                             nrow = 8, 
+                             top = "Processing results",
+                             layout_matrix = matrix(1:48, 8, 6, TRUE) )
+  
+  
+  ggsave(plot = test_plots,
+         file=paste0(outdir, .Platform$file.sep, "Tracelet_", nameName, ".pdf"), 
+         width = 297, 
+         height = 210, 
+         units = "mm") 
+  
+  plot.list <- NULL
+  
+}
+# ==============================================================================
+# Output as .csv 
+write.csv(average_tracelets, paste0(outdir, .Platform$file.sep, "AvgTracelets.csv"))
+
+# ==============================================================================
+# Measure the number of filtered traces
+first_feature_filter_summary <- first_feature_filter %>%
+  dplyr::group_by(name) %>%
+  dplyr::summarise(total_roi = n_distinct(roi),
+                   total_filtered_roi = sum(slope_positive == TRUE | stimulation_exceeds_threshold == TRUE),
+                   slope_filtered_roi = sum(slope_positive == TRUE),
+                   threshold_filtered_roi = sum(stimulation_exceeds_threshold == TRUE),
+                   analyzed_roi = sum(slope_positive == FALSE & stimulation_exceeds_threshold == FALSE)
+                   )
+
+write.csv(first_feature_filter_summary, paste0(outdir, .Platform$file.sep, "FilterSummary.csv"))
+
+# Measurement number of failed and successful stimulation per trace
+# subset the trace to apply the correction
+# uses the start_correction and end_correction setting to measure only the relevant stimulations
+feature_data_subset <- feature_data %>% dplyr::filter(stim_frame_char %in% (start_correction:end_correction))
+
+feature_data_subset_summary_name <- feature_data_subset %>%
+  dplyr::group_by(name) %>%
+  dplyr::summarise(total_rois = n_distinct(roi),
+                   total_stimulations = n(),
+                   responding_stimulations = sum(stim_response_filter == TRUE),
+                   nonresponding_stimulations = sum(stim_response_filter == FALSE)
+  )
+
+feature_data_subset_summary_name$percent_failed = ( feature_data_subset_summary_name$nonresponding_stimulations / feature_data_subset_summary_name$total_stimulations ) * 100
+
+write.csv(feature_data_subset_summary_name, paste0(outdir, .Platform$file.sep, "StimulationSummary.csv"))
 # ==============================================================================
 # Plot extracted features
 
@@ -716,7 +804,6 @@ for (nameName in nameTable) {
   
 }
 
-
 # ==============================================================================
 # Filtering of traces
 lots_of_trash = "2312127_1_iNWT0311_VGLUTpHlenti1uL_100nMJFX650_1.3mMCa_10x4AP_t5x30f_200AP_t335_500msframe_2_MMImages.ome"
@@ -725,8 +812,5 @@ good_traces = "2312127_1_iNWT0311_VGLUTpHlenti1uL_HaloFBPWT1uL_100nMJFX650_1.3mM
 signal_subset <- subset(table.signal.mean, name == good_traces)
 signal_subset_roi <- subset(signal_subset, roi == '010')
 
-
-
 feature_subset <- subset(feature_data, name == good_traces)
 feature_subset_roi <- subset(feature_subset, roi == '010')
-
